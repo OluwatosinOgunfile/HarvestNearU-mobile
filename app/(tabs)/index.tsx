@@ -22,8 +22,8 @@ export default function HomeScreen() {
   const { theme, products, loading, error, refresh, loadNearby, user } = useApp();
   const wideJourney = width >= 760;
   const heroHeight = width >= 760
-    ? Math.min(560, Math.max(440, width * 0.42))
-    : Math.min(480, Math.max(400, (width - 24) * 1.2));
+    ? Math.min(500, Math.max(390, width * 0.36))
+    : Math.min(430, Math.max(350, (width - 24) * 1.03));
 
   return <Screen refreshing={loading} onRefresh={refresh}>
     <Header />
@@ -88,11 +88,11 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   hero: { marginHorizontal: 12, borderRadius: 22, overflow: 'hidden', justifyContent: 'flex-end' },
   shade: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(6,40,22,.58)' },
-  heroContent: { padding: 24, paddingBottom: 30 },
+  heroContent: { paddingHorizontal: 24, paddingTop: 18, paddingBottom: 24 },
   eyebrow: { color: palette.gold, fontSize: 11, fontWeight: '900', letterSpacing: 1.4 },
-  heroTitle: { maxWidth: 320, marginTop: 12, color: '#fff', fontSize: 42, lineHeight: 45, fontFamily: 'serif', fontWeight: '600' },
-  heroCopy: { maxWidth: 300, marginTop: 14, color: '#e7eee9', fontSize: 15, lineHeight: 22 },
-  heroButton: { height: 50, alignSelf: 'flex-start', marginTop: 22, paddingHorizontal: 17, flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: palette.gold, borderRadius: 12 },
+  heroTitle: { maxWidth: 320, marginTop: 8, color: '#fff', fontSize: 39, lineHeight: 42, fontFamily: 'serif', fontWeight: '600' },
+  heroCopy: { maxWidth: 300, marginTop: 10, color: '#e7eee9', fontSize: 15, lineHeight: 21 },
+  heroButton: { height: 48, alignSelf: 'flex-start', marginTop: 16, paddingHorizontal: 17, flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: palette.gold, borderRadius: 12 },
   greeting: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   kicker: { fontSize: 11, fontWeight: '900', letterSpacing: 1.2 },
   heading: { marginTop: 5, fontSize: 28, fontFamily: 'serif', fontWeight: '600' },
