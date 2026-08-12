@@ -22,7 +22,7 @@ export function ProductCard({ product, fullWidth = false }: { product: Product; 
   return <>
     <Pressable onPress={() => setPreview(true)} style={[styles.card, fullWidth && styles.fullWidth, { backgroundColor: theme.surface, borderColor: theme.border }]}>
       <View style={styles.imageWrap}>
-        <Image source={{ uri: absoluteUrl(product.image) }} style={styles.image} contentFit="cover" transition={220} />
+        <Image source={{ uri: absoluteUrl(product.image) }} style={styles.image} contentFit="cover" cachePolicy="memory-disk" recyclingKey={product.id} transition={220} />
         <View style={styles.distance}><MapPin size={13} color="#183525" /><Text>{walking(product.distance)}</Text></View>
         <Pressable accessibilityLabel={liked.includes(product.id) ? 'Remove from favourites' : 'Save to favourites'} onPress={(event) => {
           event.stopPropagation();

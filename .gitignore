@@ -41,6 +41,7 @@ yarn-error.*
 .chrome-*/
 account-check.png
 dist-test/
+dist-verify/
 
 # typescript
 *.tsbuildinfo

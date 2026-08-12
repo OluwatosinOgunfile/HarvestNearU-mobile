@@ -1,8 +1,12 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
+import * as Device from 'expo-device';
 import * as Location from 'expo-location';
 import * as Notifications from 'expo-notifications';
-import { PropsWithChildren, createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { Platform, useColorScheme } from 'react-native';
+import { ShoppingBag } from 'lucide-react-native';
+import { PropsWithChildren, createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { Animated, Platform, StyleSheet, View, useColorScheme } from 'react-native';
+import { Text } from '@/components/typography';
 import { api, clearSessionToken, saveSessionToken } from '@/lib/api';
 import { themes } from '@/lib/theme';
 
@@ -29,6 +33,9 @@ export function AppProvider({ children }: PropsWithChildren) {
   const [cart,setCart] = useState<Record<string,number>>({});
   const [liked,setLiked] = useState<string[]>([]);
   const [notificationCount,setNotificationCount] = useState(0);
+  const [pushToken,setPushToken] = useState<string|null>(null);
+  const [cartNotice,setCartNotice] = useState<{message:string;key:number}|null>(null);
+  const noticeProgress = useRef(new Animated.Value(0)).current;
   const [loading,setLoading] = useState(true);
   const [error,setError] = useState('');
 
@@ -69,17 +76,36 @@ export function AppProvider({ children }: PropsWithChildren) {
   useEffect(()=>{ void AsyncStorage.setItem(CART_KEY,JSON.stringify(cart)); },[cart]);
   useEffect(()=>{if(!user){setLiked([]);return}api<{favourites:string[]}>('/api/favourites').then(result=>setLiked(result.favourites||[])).catch(()=>setLiked([]))},[user]);
   useEffect(()=>{void refreshNotifications()},[refreshNotifications]);
-  useEffect(()=>{if(!user)return;let active=true;let known=new Set<string>();let initialized=false;void Notifications.requestPermissionsAsync();if(Platform.OS==='android')void Notifications.setNotificationChannelAsync('actionable',{name:'Actionable updates',importance:Notifications.AndroidImportance.HIGH,sound:'default',vibrationPattern:[0,180,120,180]});const poll=async()=>{try{const result=await api<{notifications:{id:string;title:string;message:string;action_url?:string|null}[]}>('/api/notifications');if(!active)return;const items=result.notifications||[];const arrived=initialized?items.filter(item=>!known.has(item.id)):[];known=new Set(items.map(item=>item.id));initialized=true;setNotificationCount(items.length);for(const item of arrived.slice(0,3))await Notifications.scheduleNotificationAsync({content:{title:item.title,body:item.message,sound:'default',data:{route:item.action_url||'/notifications'}},trigger:null});}catch{}};void poll();const interval=setInterval(poll,5000);return()=>{active=false;clearInterval(interval)}},[user]);
+  useEffect(()=>{if(!user||Platform.OS==='web'||!Device.isDevice)return;let active=true;const register=async()=>{try{if(Platform.OS==='android')await Notifications.setNotificationChannelAsync('actionable',{name:'Actionable updates',importance:Notifications.AndroidImportance.HIGH,sound:'default',vibrationPattern:[0,180,120,180]});const permission=await Notifications.requestPermissionsAsync();if(!permission.granted)return;const projectId=Constants.expoConfig?.extra?.eas?.projectId||Constants.easConfig?.projectId;if(!projectId)return;const token=(await Notifications.getExpoPushTokenAsync({projectId})).data;if(!active)return;setPushToken(token);await api('/api/notifications/push-token',{method:'POST',body:JSON.stringify({token,platform:Platform.OS,deviceName:Device.modelName})})}catch{}};void register();return()=>{active=false}},[user]);
+  useEffect(()=>{if(!user)return;const interval=setInterval(()=>void refreshNotifications(),30000);return()=>clearInterval(interval)},[user,refreshNotifications]);
   const setDark=(value:boolean)=>{ setDarkState(value); void AsyncStorage.setItem(THEME_KEY,value?'dark':'light'); };
-  const add=(product:Product)=>setCart(current=>({...current,[product.id]:Math.min(product.stock,(current[product.id]||0)+1)}));
+  const add=(product:Product)=>{
+    const currentQuantity=cart[product.id]||0;
+    if(currentQuantity>=product.stock)return;
+    setCart(current=>({...current,[product.id]:Math.min(product.stock,(current[product.id]||0)+1)}));
+    setCartNotice({message:`${product.name} added to your basket`,key:Date.now()});
+  };
   const updateCart=(id:string,delta:number)=>setCart(current=>{ const product=products.find(item=>item.id===id); const next=Math.max(0,Math.min(product?.stock||0,(current[id]||0)+delta)); const value={...current}; if(next)value[id]=next;else delete value[id];return value; });
   const signIn=async(identifier:string,password:string)=>{ const result=await api<{user:User;sessionToken?:string}>('/api/auth/signin',{method:'POST',body:JSON.stringify({identifier,password})});await saveSessionToken(result.sessionToken);setUser(result.user);await load(); };
-  const signOut=async()=>{ try { await api('/api/auth/signout',{method:'POST'}); } finally { await clearSessionToken(); setUser(null); } };
+  const signOut=async()=>{ try { if(pushToken)await api('/api/notifications/push-token',{method:'DELETE',body:JSON.stringify({token:pushToken})}).catch(()=>undefined);await api('/api/auth/signout',{method:'POST'}); } finally { setPushToken(null);await clearSessionToken(); setUser(null); } };
   const signUp=async(input:Record<string,string>)=>{const result=await api<{user:User;sessionToken?:string}>('/api/auth/signup',{method:'POST',body:JSON.stringify(input)});if(result.sessionToken)await saveSessionToken(result.sessionToken);setUser(result.user);await load();};
   const clearCart=()=>setCart({});
   const toggleLike=async(id:string)=>{if(!user)throw new Error('Sign in to save favourites.');const saved=!liked.includes(id);setLiked(current=>saved?[...current,id]:current.filter(value=>value!==id));try{await api('/api/favourites',{method:'PUT',body:JSON.stringify({listingId:id,saved})})}catch(reason){setLiked(current=>saved?current.filter(value=>value!==id):[...current,id]);throw reason}};
   const loadNearby=async()=>{ const permission=await Location.requestForegroundPermissionsAsync(); if(permission.status!=='granted') throw new Error('Location permission is required to rank nearby produce.'); const result=await Location.getCurrentPositionAsync({accuracy:Location.Accuracy.Balanced}); await load(result.coords); };
-  const value=useMemo(()=>({user,products,loading,error,cart,cartCount:Object.values(cart).reduce((sum,value)=>sum+value,0),liked,notificationCount,dark,theme:themes[dark?'dark':'light'],setDark,refresh:()=>load(),refreshSession:loadSession,signIn,signOut,signUp,add,updateCart,clearCart,toggleLike,loadNearby,refreshNotifications}),[user,products,loading,error,cart,liked,notificationCount,dark,load,loadSession,refreshNotifications]);
-  return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
+  const theme=themes[dark?'dark':'light'];
+  const value=useMemo(()=>({user,products,loading,error,cart,cartCount:Object.values(cart).reduce((sum,value)=>sum+value,0),liked,notificationCount,dark,theme,setDark,refresh:()=>load(),refreshSession:loadSession,signIn,signOut,signUp,add,updateCart,clearCart,toggleLike,loadNearby,refreshNotifications}),[user,products,loading,error,cart,liked,notificationCount,dark,theme,load,loadSession,refreshNotifications]);
+  useEffect(()=>{
+    if(!cartNotice)return;
+    noticeProgress.stopAnimation();
+    noticeProgress.setValue(0);
+    Animated.sequence([
+      Animated.spring(noticeProgress,{toValue:1,useNativeDriver:true,damping:18,stiffness:210,mass:.8}),
+      Animated.delay(2200),
+      Animated.timing(noticeProgress,{toValue:0,duration:180,useNativeDriver:true}),
+    ]).start(({finished})=>{if(finished)setCartNotice(null)});
+  },[cartNotice,noticeProgress]);
+  return <AppContext.Provider value={value}><View style={styles.app}>{children}</View>{cartNotice?<Animated.View key={cartNotice.key} accessibilityLiveRegion="polite" pointerEvents="none" style={[styles.toast,{backgroundColor:theme.surface,borderColor:theme.border,opacity:noticeProgress,transform:[{translateY:noticeProgress.interpolate({inputRange:[0,1],outputRange:[-18,0]})}]}]}><View style={[styles.toastIcon,{backgroundColor:theme.primary}]}><ShoppingBag size={17} color={theme.primaryText}/></View><View style={styles.toastCopy}><Text style={[styles.toastTitle,{color:theme.text}]}>Added to basket</Text><Text numberOfLines={1} style={[styles.toastText,{color:theme.muted}]}>{cartNotice.message}</Text></View></Animated.View>:null}</AppContext.Provider>;
 }
 export function useApp(){const value=useContext(AppContext);if(!value)throw new Error('AppProvider is missing');return value;}
+
+const styles=StyleSheet.create({app:{flex:1},toast:{position:'absolute',zIndex:1000,elevation:12,top:56,left:18,right:18,minHeight:66,padding:11,borderWidth:1,borderRadius:15,flexDirection:'row',alignItems:'center',gap:11,shadowColor:'#000',shadowOpacity:.16,shadowRadius:14,shadowOffset:{width:0,height:7}},toastIcon:{width:40,height:40,borderRadius:12,alignItems:'center',justifyContent:'center'},toastCopy:{flex:1},toastTitle:{fontSize:14,fontWeight:'800'},toastText:{fontSize:12,marginTop:2}});
