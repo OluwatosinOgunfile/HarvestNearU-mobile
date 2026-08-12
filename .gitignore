@@ -32,6 +32,15 @@ yarn-error.*
 
 # local env files
 .env*.local
+.env
+
+# local builds and verification artifacts
+*.apk
+*.aab
+.expo-dev.log
+.chrome-*/
+account-check.png
+dist-test/
 
 # typescript
 *.tsbuildinfo

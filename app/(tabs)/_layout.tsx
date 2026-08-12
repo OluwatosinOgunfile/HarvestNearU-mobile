@@ -1,35 +1,5 @@
 import { Tabs } from 'expo-router';
-import React from 'react';
-
-import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-
-export default function TabLayout() {
-  const colorScheme = useColorScheme();
-
-  return (
-    <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        headerShown: false,
-        tabBarButton: HapticTab,
-      }}>
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="explore"
-        options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
-        }}
-      />
-    </Tabs>
-  );
-}
+import { Home, Leaf, PackageCheck, Store, UserRound } from 'lucide-react-native';
+import { Platform } from 'react-native';
+import { useApp } from '@/context/app-context';
+export default function TabLayout(){const {theme,user}=useApp();const farmer=user?.role==='farmer'||user?.role==='admin'||user?.role==='support';return <Tabs screenOptions={{headerShown:false,tabBarActiveTintColor:theme.primary,tabBarInactiveTintColor:theme.muted,tabBarStyle:{height:Platform.OS==='ios'?86:70,paddingTop:8,backgroundColor:theme.surface,borderTopColor:theme.border},tabBarLabelStyle:{fontSize:11,fontWeight:'700',marginBottom:Platform.OS==='ios'?0:8}}}><Tabs.Screen name="index" options={{title:'Home',tabBarIcon:({color})=><Home size={22} color={color}/>}}/><Tabs.Screen name="shop" options={{title:'Shop',tabBarIcon:({color})=><Leaf size={22} color={color}/>}}/><Tabs.Screen name="orders" options={{title:'Orders',tabBarIcon:({color})=><PackageCheck size={22} color={color}/>}}/><Tabs.Screen name="workspace" options={{title:user?.role==='admin'||user?.role==='support'?'Console':'Workspace',href:farmer?undefined:null,tabBarIcon:({color})=><Store size={22} color={color}/>}}/><Tabs.Screen name="account" options={{title:'Account',tabBarIcon:({color})=><UserRound size={22} color={color}/>}}/></Tabs>}

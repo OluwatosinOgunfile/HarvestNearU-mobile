@@ -1,0 +1,34 @@
+import Constants from 'expo-constants';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const environmentUrl = process.env.EXPO_PUBLIC_API_URL;
+const releaseUrl = Constants.expoConfig?.extra?.apiUrl;
+const configuredUrl = __DEV__ ? environmentUrl || releaseUrl : releaseUrl || environmentUrl;
+export const API_URL = String(configuredUrl || 'https://www.harvestnearu.com').replace(/\/$/, '');
+const SESSION_KEY = 'harvestnearu.native.session-token';
+
+export const saveSessionToken = (token?: string | null) => token
+  ? AsyncStorage.setItem(SESSION_KEY, token)
+  : Promise.reject(new Error('The server did not provide a mobile session. Update the HarvestNearU backend and try again.'));
+export const clearSessionToken = () => AsyncStorage.removeItem(SESSION_KEY);
+
+export function absoluteUrl(value?: string | null) {
+  if (!value) return `${API_URL}/produce/vine-ripe-tomatoes.webp`;
+  if (/^https?:\/\//i.test(value)) return value;
+  return `${API_URL}${value.startsWith('/') ? '' : '/'}${value}`;
+}
+
+export async function api<T>(path: string, init?: RequestInit): Promise<T> {
+  const token = await AsyncStorage.getItem(SESSION_KEY);
+  const response = await fetch(`${API_URL}${path}`, {
+    ...init,
+    credentials: 'include',
+    headers: { Accept: 'application/json', 'X-HarvestNearU-Client': 'mobile', ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(init?.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }), ...init?.headers },
+  });
+  const text = await response.text();
+  let data: T & { error?: string };
+  try { data = text ? JSON.parse(text) : ({} as T & { error?: string }); }
+  catch { throw new Error('The server returned an unreadable response.'); }
+  if (!response.ok) throw new Error(data.error || `Request failed (${response.status})`);
+  return data;
+}

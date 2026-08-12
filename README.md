@@ -1,50 +1,58 @@
-# Welcome to your Expo app 👋
+# HarvestNearU Mobile
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Native Expo/React Native client for HarvestNearU. This is a separate mobile application, not a WebView or Capacitor wrapper. It shares the production Next.js API, Neon database, Vercel Blob assets, Paystack flow, roles, and HarvestNearU visual identity.
 
-## Get started
+## Included native flows
 
-1. Install dependencies
+- Role-aware bottom navigation
+- Consumer and farmer sign-up and sign-in
+- Nearby produce with device-location ranking
+- Search and dynamic category filtering
+- Full, uncropped produce-image previews
+- Persistent basket, stock limits, fulfilment choice, and Paystack handoff
+- Database-backed order history
+- Farmer workspace summary
+- Notifications with read acknowledgement
+- Account profile, dark mode, and sign-out
 
-   ```bash
-   npm install
-   ```
+## Run locally
 
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+```powershell
+npm install
+npm start
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+The app reads its backend address from `EXPO_PUBLIC_API_URL`. The `app.json`
+value (`https://www.harvestnearu.com`) is the production fallback, while
+`.env.local` points Expo Web to the Next.js backend on `http://localhost:3000`.
+Start the backend from `C:\code\farmers-market` before starting Expo.
 
-## Learn more
+- Expo Web or iOS simulator: `http://localhost:3000`
+- Android emulator: `http://10.0.2.2:3000`
+- Physical device: `http://<your-computer-LAN-IP>:3000`
+- Production: `https://www.harvestnearu.com`
 
-To learn more about developing your project with Expo, look at the following resources:
+This project uses Expo SDK 57, so test it with an Expo development build rather than the SDK 54 Expo Go client during Expo's current SDK transition.
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+```powershell
+npx eas-cli build --profile development --platform android
+npm start
+```
 
-## Join the community
+To use a Next.js server running on another device-accessible address:
 
-Join our community of developers creating universal apps.
+```powershell
+$env:EXPO_PUBLIC_API_URL="http://192.168.1.20:3000"
+npm start
+```
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+Do not use `localhost` from a physical phone; it points to the phone itself.
+
+## Native builds
+
+```powershell
+npx eas-cli build --platform android
+npx eas-cli build --platform ios
+```
+
+Configure an Expo account and EAS project before store builds. Keep the API HTTPS in release builds.
