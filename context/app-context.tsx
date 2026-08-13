@@ -13,7 +13,7 @@ import { themes } from '@/lib/theme';
 export type User = { id:string; email:string; firstName:string; lastName:string; role:'consumer'|'farmer'|'admin'|'support'; avatarUrl:string|null };
 export type Product = { id:string; farmId:string; name:string; farmer:string; location:string; distance:number; price:number; unit:string; stock:number; restockTotal:number; category:string; available:string; rating:number; reviewCount:number; image:string; badge?:string };
 type ContextValue = {
-  user: User|null; products: Product[]; loading:boolean; error:string; cart:Record<string,number>; cartCount:number; liked:string[]; notificationCount:number;
+  user: User|null; sessionReady:boolean; products: Product[]; loading:boolean; error:string; cart:Record<string,number>; cartCount:number; liked:string[]; notificationCount:number;
   dark:boolean; theme:typeof themes.light; setDark:(value:boolean)=>void; refresh:()=>Promise<void>; refreshSession:()=>Promise<void>;
   signIn:(identifier:string,password:string)=>Promise<void>; signOut:()=>Promise<void>; signUp:(input:Record<string,string>)=>Promise<void>;
   add:(product:Product)=>void; updateCart:(id:string,delta:number)=>void; clearCart:()=>void; toggleLike:(id:string)=>Promise<void>;
@@ -29,6 +29,7 @@ export function AppProvider({ children }: PropsWithChildren) {
   const systemDark = useColorScheme() === 'dark';
   const [dark,setDarkState] = useState(systemDark);
   const [user,setUser] = useState<User|null>(null);
+  const [sessionReady,setSessionReady] = useState(false);
   const [products,setProducts] = useState<Product[]>([]);
   const [cart,setCart] = useState<Record<string,number>>({});
   const [liked,setLiked] = useState<string[]>([]);
@@ -60,7 +61,7 @@ export function AppProvider({ children }: PropsWithChildren) {
     } catch {
       // The public marketplace must remain usable when session recovery fails.
       setUser(null);
-    }
+    } finally { setSessionReady(true); }
   }, []);
   const refreshNotifications = useCallback(async () => {
     if (!user) { setNotificationCount(0); return; }
@@ -93,7 +94,7 @@ export function AppProvider({ children }: PropsWithChildren) {
   const toggleLike=async(id:string)=>{if(!user)throw new Error('Sign in to save favourites.');const saved=!liked.includes(id);setLiked(current=>saved?[...current,id]:current.filter(value=>value!==id));try{await api('/api/favourites',{method:'PUT',body:JSON.stringify({listingId:id,saved})})}catch(reason){setLiked(current=>saved?current.filter(value=>value!==id):[...current,id]);throw reason}};
   const loadNearby=async()=>{ const permission=await Location.requestForegroundPermissionsAsync(); if(permission.status!=='granted') throw new Error('Location permission is required to rank nearby produce.'); const result=await Location.getCurrentPositionAsync({accuracy:Location.Accuracy.Balanced}); await load(result.coords); };
   const theme=themes[dark?'dark':'light'];
-  const value=useMemo(()=>({user,products,loading,error,cart,cartCount:Object.values(cart).reduce((sum,value)=>sum+value,0),liked,notificationCount,dark,theme,setDark,refresh:()=>load(),refreshSession:loadSession,signIn,signOut,signUp,add,updateCart,clearCart,toggleLike,loadNearby,refreshNotifications}),[user,products,loading,error,cart,liked,notificationCount,dark,theme,load,loadSession,refreshNotifications]);
+  const value=useMemo(()=>({user,sessionReady,products,loading,error,cart,cartCount:Object.values(cart).reduce((sum,value)=>sum+value,0),liked,notificationCount,dark,theme,setDark,refresh:()=>load(),refreshSession:loadSession,signIn,signOut,signUp,add,updateCart,clearCart,toggleLike,loadNearby,refreshNotifications}),[user,sessionReady,products,loading,error,cart,liked,notificationCount,dark,theme,load,loadSession,refreshNotifications]);
   useEffect(()=>{
     if(!cartNotice)return;
     noticeProgress.stopAnimation();
