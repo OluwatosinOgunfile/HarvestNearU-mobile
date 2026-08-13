@@ -1,5 +1,7 @@
 import Constants from 'expo-constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { fetch as expoFetch } from 'expo/fetch';
+import { File } from 'expo-file-system';
 
 const environmentUrl = process.env.EXPO_PUBLIC_API_URL;
 const releaseUrl = Constants.expoConfig?.extra?.apiUrl;
@@ -18,9 +20,13 @@ export function absoluteUrl(value?: string | null) {
   return `${API_URL}${value.startsWith('/') ? '' : '/'}${value}`;
 }
 
+export function multipartFile(uri: string) {
+  return new File(uri);
+}
+
 export async function api<T>(path: string, init?: RequestInit): Promise<T> {
   const token = await AsyncStorage.getItem(SESSION_KEY);
-  const response = await fetch(`${API_URL}${path}`, {
+  const response = await expoFetch(`${API_URL}${path}`, {
     ...init,
     credentials: 'include',
     headers: { Accept: 'application/json', 'X-HarvestNearU-Client': 'mobile', ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(init?.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }), ...init?.headers },

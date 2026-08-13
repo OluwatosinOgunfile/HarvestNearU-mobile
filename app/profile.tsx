@@ -7,7 +7,7 @@ import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import { Screen } from '@/components/screen';
 import { Text, TextInput } from '@/components/typography';
 import { useApp } from '@/context/app-context';
-import { absoluteUrl, api } from '@/lib/api';
+import { absoluteUrl, api, multipartFile } from '@/lib/api';
 
 type EmailPreferences={delivery_updates:boolean;support_updates:boolean;farm_updates:boolean;rating_updates:boolean;nearby_produce:boolean;offers_and_promotions:boolean;weekly_digest:boolean};
 type ProfileData={user:{first_name:string;last_name:string;email:string;phone:string|null;avatar_url:string|null;role:string};addresses:{line1:string;city:string;state:string}[];stats:{total_orders:number;farms_supported:number;completed_orders:number};storeCredit:{balance_kobo:number};emailPreferences:EmailPreferences;farms?:{id:string;name:string;city:string;state:string;verification_status:string;average_rating:number;review_count:number}[]};
@@ -42,7 +42,7 @@ export default function UserProfile(){
     setUploading(true);
     try{
       const body=new FormData();
-      body.append('file',{uri:asset.uri,name:asset.fileName||`profile-${Date.now()}.jpg`,type:asset.mimeType||'image/jpeg'} as never);
+      body.append('file',multipartFile(asset.uri));
       const response=await api<{avatarUrl:string}>('/api/profile/avatar',{method:'POST',body});
       setData(current=>current?{...current,user:{...current.user,avatar_url:response.avatarUrl}}:current);
       await refreshSession();
