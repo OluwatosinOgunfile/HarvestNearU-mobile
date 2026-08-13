@@ -34,7 +34,10 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
   const text = await response.text();
   let data: T & { error?: string };
   try { data = text ? JSON.parse(text) : ({} as T & { error?: string }); }
-  catch { throw new Error('The server returned an unreadable response.'); }
+  catch {
+    if (response.status === 404) throw new Error('This feature is waiting for the latest server update. Please try again shortly.');
+    throw new Error(`The server returned an unreadable response (${response.status}).`);
+  }
   if (!response.ok) throw new Error(data.error || `Request failed (${response.status})`);
   return data;
 }
