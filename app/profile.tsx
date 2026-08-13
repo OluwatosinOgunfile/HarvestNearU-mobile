@@ -7,7 +7,7 @@ import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import { Screen } from '@/components/screen';
 import { Text, TextInput } from '@/components/typography';
 import { useApp } from '@/context/app-context';
-import { absoluteUrl, api, multipartFile } from '@/lib/api';
+import { absoluteUrl, api } from '@/lib/api';
 
 type EmailPreferences={delivery_updates:boolean;support_updates:boolean;farm_updates:boolean;rating_updates:boolean;nearby_produce:boolean;offers_and_promotions:boolean;weekly_digest:boolean};
 type ProfileData={user:{first_name:string;last_name:string;email:string;phone:string|null;avatar_url:string|null;role:string};addresses:{line1:string;city:string;state:string}[];stats:{total_orders:number;farms_supported:number;completed_orders:number};storeCredit:{balance_kobo:number};emailPreferences:EmailPreferences;farms?:{id:string;name:string;city:string;state:string;verification_status:string;average_rating:number;review_count:number}[]};
@@ -35,15 +35,18 @@ export default function UserProfile(){
 
   async function choosePicture(){
     setMessage('');
-    const result=await ImagePicker.launchImageLibraryAsync({mediaTypes:['images'],allowsEditing:true,aspect:[1,1],quality:.82});
+    const result=await ImagePicker.launchImageLibraryAsync({mediaTypes:['images'],allowsEditing:true,aspect:[1,1],quality:.82,base64:true});
     if(result.canceled)return;
     const asset=result.assets[0];
     if(asset.fileSize&&asset.fileSize>3*1024*1024){setMessage('Choose a profile picture smaller than 3 MB.');return}
     setUploading(true);
     try{
-      const body=new FormData();
-      body.append('file',multipartFile(asset.uri));
-      const response=await api<{avatarUrl:string}>('/api/profile/avatar',{method:'POST',body});
+      if(!asset.base64)throw new Error('The selected picture could not be read. Please choose it again.');
+      const response=await api<{avatarUrl:string}>('/api/profile/avatar',{method:'POST',body:JSON.stringify({
+        imageBase64:asset.base64,
+        mimeType:asset.mimeType||'image/jpeg',
+        fileName:asset.fileName||'profile-picture.jpg',
+      })});
       setData(current=>current?{...current,user:{...current.user,avatar_url:response.avatarUrl}}:current);
       await refreshSession();
       setMessage('Profile picture updated successfully.');
