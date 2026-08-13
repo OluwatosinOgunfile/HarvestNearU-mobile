@@ -12,10 +12,17 @@ export function ProductPreview({ product, visible, onClose }: { product:Product;
   const router = useRouter();
   const { theme, add } = useApp();
   return <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-    <Pressable style={styles.backdrop} onPress={onClose}>
-      <Pressable style={[styles.modal, { backgroundColor: theme.surface }]} onPress={() => {}}>
+    <View style={styles.backdrop}>
+      <Pressable accessibilityLabel="Close produce preview" style={StyleSheet.absoluteFill} onPress={onClose} />
+      <View style={[styles.modal, { backgroundColor: theme.surface }]}>
         <Pressable onPress={onClose} style={styles.close}><X size={22} /></Pressable>
-        <ScrollView showsVerticalScrollIndicator={false} bounces={false} contentContainerStyle={styles.scrollContent}>
+        <ScrollView
+          style={styles.scroller}
+          showsVerticalScrollIndicator
+          nestedScrollEnabled
+          bounces
+          contentContainerStyle={styles.scrollContent}
+        >
           <Image source={{ uri: absoluteUrl(product.image) }} style={styles.image} contentFit="contain" />
           <View style={styles.info}>
             <Text style={[styles.kicker, { color: theme.primary }]}>{product.available.toUpperCase()} {'\u00B7'} {product.category.toUpperCase()}</Text>
@@ -30,9 +37,9 @@ export function ProductPreview({ product, visible, onClose }: { product:Product;
             </View>
           </View>
         </ScrollView>
-      </Pressable>
-    </Pressable>
+      </View>
+    </View>
   </Modal>;
 }
 
-const styles=StyleSheet.create({backdrop:{flex:1,padding:14,justifyContent:'center',backgroundColor:'rgba(5,14,9,.82)'},modal:{height:'92%',overflow:'hidden',borderRadius:20},scrollContent:{flexGrow:1},close:{position:'absolute',right:13,top:13,zIndex:2,width:42,height:42,borderRadius:13,backgroundColor:'rgba(255,255,255,.94)',alignItems:'center',justifyContent:'center'},image:{width:'100%',height:430,backgroundColor:'#101712'},info:{padding:20,paddingBottom:34},kicker:{fontSize:11,fontWeight:'900',letterSpacing:1},title:{fontSize:27,fontFamily:'serif',fontWeight:'600',marginVertical:6},farmLink:{alignSelf:'flex-start',flexDirection:'row',alignItems:'center',gap:6},action:{marginTop:18,flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:12},priceRow:{flexDirection:'row',alignItems:'baseline',gap:4},price:{fontSize:19,fontWeight:'900'},add:{minHeight:45,paddingHorizontal:14,borderRadius:10,flexDirection:'row',alignItems:'center',gap:6}});
+const styles=StyleSheet.create({backdrop:{flex:1,padding:14,justifyContent:'center',backgroundColor:'rgba(5,14,9,.82)'},modal:{height:'92%',overflow:'hidden',borderRadius:20},scroller:{flex:1},scrollContent:{flexGrow:1},close:{position:'absolute',right:13,top:13,zIndex:2,width:42,height:42,borderRadius:13,backgroundColor:'rgba(255,255,255,.94)',alignItems:'center',justifyContent:'center'},image:{width:'100%',height:430,backgroundColor:'#101712'},info:{padding:20,paddingBottom:34},kicker:{fontSize:11,fontWeight:'900',letterSpacing:1},title:{fontSize:27,fontFamily:'serif',fontWeight:'600',marginVertical:6},farmLink:{alignSelf:'flex-start',flexDirection:'row',alignItems:'center',gap:6},action:{marginTop:18,flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:12},priceRow:{flexDirection:'row',alignItems:'baseline',gap:4},price:{fontSize:19,fontWeight:'900'},add:{minHeight:45,paddingHorizontal:14,borderRadius:10,flexDirection:'row',alignItems:'center',gap:6}});
