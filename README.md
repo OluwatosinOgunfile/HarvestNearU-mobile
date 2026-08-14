@@ -5,15 +5,19 @@ Native Expo/React Native client for HarvestNearU. This is a separate mobile appl
 ## Included native flows
 
 - Role-aware bottom navigation
-- Consumer and farmer sign-up and sign-in
-- Nearby produce with device-location ranking
+- Consumer and farmer sign-up, sign-in, password visibility, and password recovery
+- Nearby produce with device or saved-location ranking
 - Search and dynamic category filtering
-- Full, uncropped produce-image previews
-- Persistent basket, stock limits, fulfilment choice, and Paystack handoff
-- Database-backed order history
-- Farmer workspace summary
-- Notifications with read acknowledgement
-- Account profile, dark mode, and sign-out
+- Full, uncropped, scrollable produce-image previews and linked farm storefronts
+- Free OpenStreetMap farm maps and routed directions
+- Shared active pickup-centre directory with addresses and opening hours
+- Persistent basket, stock limits, and three fulfilment choices: doorstep, farm pickup, or arrange with farmer
+- Paystack handoff, database-backed open/completed orders, item tracking, receipt acknowledgement, farm ratings, and printable receipts
+- Farmer multi-farm workspace, farm creation, produce publishing, fulfilment, payout accounts, payout requests, and printable statements
+- Profile pictures, saved delivery location, account credit, email preferences, support tickets, and feedback
+- Real-time notification counts plus actionable Expo push notifications with sound
+- Dark mode, role-aware navigation, and sign-out
+- Dedicated administrator/support console access with a shorter staff re-authentication window
 
 ## Run locally
 
@@ -56,3 +60,17 @@ npx eas-cli build --platform ios
 ```
 
 Configure an Expo account and EAS project before store builds. Keep the API HTTPS in release builds.
+
+For a local Android release build, use Java 17 and the generated native project:
+
+```powershell
+npx expo prebuild --platform android
+cd android
+.\gradlew.bat assembleRelease
+```
+
+The release configuration targets `arm64-v8a`, minifies code, and shrinks resources to keep the APK smaller. Production API fallback is configured in `app.json`; `EXPO_PUBLIC_API_URL` overrides it for local development.
+
+## Shared backend services
+
+The app does not connect directly to Neon, Vercel Blob, Resend, Paystack, OpenStreetMap routing, or Expo notification dispatch. It uses the authenticated HarvestNearU Next.js API so validation, role checks, stock enforcement, payment verification, image processing, email preferences, and audit logging remain consistent with the web application.
