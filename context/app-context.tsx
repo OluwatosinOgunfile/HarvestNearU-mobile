@@ -11,9 +11,10 @@ import { api, clearSessionToken, saveSessionToken } from '@/lib/api';
 import { themes } from '@/lib/theme';
 
 export type User = { id:string; email:string; firstName:string; lastName:string; role:'consumer'|'farmer'|'admin'|'support'; avatarUrl:string|null };
-export type Product = { id:string; farmId:string; name:string; farmer:string; location:string; distance:number; price:number; unit:string; stock:number; restockTotal:number; category:string; available:string; rating:number; reviewCount:number; image:string; badge?:string };
+export type Product = { id:string; farmId:string; name:string; farmer:string; location:string; distance:number; price:number; unit:string; stock:number; sold:number; restockTotal:number; category:string; available:string; rating:number; reviewCount:number; image:string; badge?:string };
+export type FarmSummary = { id:string; name:string; location:string; image:string; category:string; rating:number; reviewCount:number; sold:number; listings:number };
 type ContextValue = {
-  user: User|null; sessionReady:boolean; products: Product[]; loading:boolean; error:string; cart:Record<string,number>; cartCount:number; liked:string[]; notificationCount:number;
+  user: User|null; sessionReady:boolean; products: Product[]; bestSellingFarms:FarmSummary[]; loading:boolean; error:string; cart:Record<string,number>; cartCount:number; liked:string[]; notificationCount:number;
   dark:boolean; theme:typeof themes.light; setDark:(value:boolean)=>void; refresh:()=>Promise<void>; refreshSession:()=>Promise<void>;
   signIn:(identifier:string,password:string)=>Promise<void>; signOut:()=>Promise<void>; signUp:(input:Record<string,string>)=>Promise<void>;
   add:(product:Product)=>void; updateCart:(id:string,delta:number)=>void; clearCart:()=>void; toggleLike:(id:string)=>Promise<void>;
@@ -31,6 +32,7 @@ export function AppProvider({ children }: PropsWithChildren) {
   const [user,setUser] = useState<User|null>(null);
   const [sessionReady,setSessionReady] = useState(false);
   const [products,setProducts] = useState<Product[]>([]);
+  const [bestSellingFarms,setBestSellingFarms] = useState<FarmSummary[]>([]);
   const [cart,setCart] = useState<Record<string,number>>({});
   const [liked,setLiked] = useState<string[]>([]);
   const [notificationCount,setNotificationCount] = useState(0);
@@ -44,9 +46,10 @@ export function AppProvider({ children }: PropsWithChildren) {
     setLoading(true); setError('');
     try {
       const query = coordinates ? `?origin=selected&lat=${coordinates.latitude}&lng=${coordinates.longitude}` : '';
-      const market = await api<{produce:Product[]}>(`/api/produce${query}`);
+      const market = await api<{produce:Product[];bestSellingFarms?:FarmSummary[]}>(`/api/produce${query}`);
       const produce = Array.isArray(market.produce) ? market.produce : [];
       setProducts(produce);
+      setBestSellingFarms(Array.isArray(market.bestSellingFarms) ? market.bestSellingFarms : []);
       setCart(current => Object.fromEntries(Object.entries(current).map(([id,quantity]) => {
         const product=produce.find(item=>item.id===id); return [id,Math.min(quantity,product?.stock||0)];
       }).filter(([,quantity])=>Number(quantity)>0)));
@@ -94,7 +97,7 @@ export function AppProvider({ children }: PropsWithChildren) {
   const toggleLike=async(id:string)=>{if(!user)throw new Error('Sign in to save favourites.');const saved=!liked.includes(id);setLiked(current=>saved?[...current,id]:current.filter(value=>value!==id));try{await api('/api/favourites',{method:'PUT',body:JSON.stringify({listingId:id,saved})})}catch(reason){setLiked(current=>saved?current.filter(value=>value!==id):[...current,id]);throw reason}};
   const loadNearby=async()=>{ const permission=await Location.requestForegroundPermissionsAsync(); if(permission.status!=='granted') throw new Error('Location permission is required to rank nearby produce.'); const result=await Location.getCurrentPositionAsync({accuracy:Location.Accuracy.Balanced}); await load(result.coords); };
   const theme=themes[dark?'dark':'light'];
-  const value=useMemo(()=>({user,sessionReady,products,loading,error,cart,cartCount:Object.values(cart).reduce((sum,value)=>sum+value,0),liked,notificationCount,dark,theme,setDark,refresh:()=>load(),refreshSession:loadSession,signIn,signOut,signUp,add,updateCart,clearCart,toggleLike,loadNearby,refreshNotifications}),[user,sessionReady,products,loading,error,cart,liked,notificationCount,dark,theme,load,loadSession,refreshNotifications]);
+  const value=useMemo(()=>({user,sessionReady,products,bestSellingFarms,loading,error,cart,cartCount:Object.values(cart).reduce((sum,value)=>sum+value,0),liked,notificationCount,dark,theme,setDark,refresh:()=>load(),refreshSession:loadSession,signIn,signOut,signUp,add,updateCart,clearCart,toggleLike,loadNearby,refreshNotifications}),[user,sessionReady,products,bestSellingFarms,loading,error,cart,liked,notificationCount,dark,theme,load,loadSession,refreshNotifications]);
   useEffect(()=>{
     if(!cartNotice)return;
     noticeProgress.stopAnimation();
