@@ -1,10 +1,11 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import * as Print from 'expo-print';
-import { ChevronDown, ChevronLeft, CircleDollarSign, Clock3, CreditCard, Printer, Send, Store, X } from 'lucide-react-native';
+import { ChevronDown, ChevronLeft, CircleDollarSign, Clock3, CreditCard, Printer, Send, X } from 'lucide-react-native';
 import { useCallback, useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Money } from '@/components/money';
 import { Screen } from '@/components/screen';
+import { SelectDropdown } from '@/components/select-dropdown';
 import { Text, TextInput } from '@/components/typography';
 import { useApp } from '@/context/app-context';
 import { api } from '@/lib/api';
@@ -76,19 +77,7 @@ export default function Payouts() {
       </View>
 
       <View style={styles.content}>
-        {data?.farms?.length ? (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.farms}>
-            {data.farms.map((farm) => {
-              const selected = farm.id === farmId;
-              return (
-                <Pressable disabled={busy} key={farm.id} onPress={() => void load(farm.id)} style={[styles.farm, { borderColor: selected ? theme.primary : theme.border, backgroundColor: selected ? theme.primary : theme.surface }]}>
-                  <Store size={16} color={selected ? theme.primaryText : theme.primary} />
-                  <Text style={[styles.farmText, { color: selected ? theme.primaryText : theme.text }]}>{farm.name}</Text>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
-        ) : null}
+        {data?.farms?.length ? <SelectDropdown label="Payout farm" value={farmId} options={data.farms.map((farm) => ({ label:farm.name, value:farm.id }))} disabled={busy} onChange={(id) => void load(id)}/> : null}
 
         {error ? <Text accessibilityLiveRegion="polite" style={[styles.error, { color: dark ? '#ffb4a8' : '#a84335', backgroundColor: dark ? '#43251f' : '#fff0ed', borderColor: dark ? '#744237' : '#f0c5bd' }]}>{error}</Text> : null}
 
