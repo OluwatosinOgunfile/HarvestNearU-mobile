@@ -19,7 +19,7 @@
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#F7F8F3",
-        "foregroundImage": "./assets/images/icon.png"
+        "foregroundImage": "./assets/images/adaptive-icon-foreground.png"
       },
       "predictiveBackGestureEnabled": false,
       "package": "com.harvestnearu.marketplace",
