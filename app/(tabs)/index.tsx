@@ -10,6 +10,7 @@ import { ProductCard } from '@/components/product-card';
 import { Screen, Section } from '@/components/screen';
 import { Text, TextInput } from '@/components/typography';
 import { useApp } from '@/context/app-context';
+import { matchesSearchTerms, searchIntentFallback } from '@/lib/search-intent';
 import { palette } from '@/lib/theme';
 
 const steps = [
@@ -38,7 +39,8 @@ export default function HomeScreen() {
 
   const visibleProducts = useMemo(() => {
     const term=query.trim().toLowerCase();
-    return products.filter(product => (category==='All'||product.category===category)&&(!term||[product.name,product.farmer,product.category,product.location].some(value=>value.toLowerCase().includes(term))));
+    const intent=searchIntentFallback(term);
+    return products.filter(product => (category==='All'||product.category===category)&&(!term||[product.name,product.farmer,product.category,product.location].some(value=>value.toLowerCase().includes(term))||matchesSearchTerms(`${product.name} ${product.category}`,intent.terms)));
   },[products,category,query]);
 
   function toggleSearch(open:boolean){if(open){setSearchOpen(true);Animated.spring(searchProgress,{toValue:1,useNativeDriver:false,damping:18,stiffness:190}).start();requestAnimationFrame(()=>{pageRef.current?.scrollTo({y:Math.max(0,searchSectionY.current-12),animated:true});setTimeout(()=>searchInputRef.current?.focus(),280)});return}searchInputRef.current?.blur();Animated.timing(searchProgress,{toValue:0,duration:160,useNativeDriver:false}).start(()=>{setSearchOpen(false);setQuery('')});}

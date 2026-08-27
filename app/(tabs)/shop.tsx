@@ -1,5 +1,5 @@
 import { useLocalSearchParams } from 'expo-router';
-import { Check, ChevronDown, RefreshCw, Search, SlidersHorizontal, Sprout, X } from 'lucide-react-native';
+import { Check, ChevronDown, Leaf, RefreshCw, Search, SlidersHorizontal, Sprout, X } from 'lucide-react-native';
 import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import { Header } from '@/components/header';
@@ -7,6 +7,8 @@ import { ProductCard } from '@/components/product-card';
 import { Screen } from '@/components/screen';
 import { Text, TextInput } from '@/components/typography';
 import { useApp } from '@/context/app-context';
+import { api } from '@/lib/api';
+import { matchesSearchTerms, searchIntentFallback } from '@/lib/search-intent';
 
 type Sort = 'distance' | 'price_low' | 'price_high' | 'rating';
 
@@ -22,6 +24,11 @@ export default function Shop() {
   const [maxWalk, setMaxWalk] = useState(0);
   const [minRating, setMinRating] = useState(0);
   const [visibleCount, setVisibleCount] = useState(12);
+  const [intentTerms, setIntentTerms] = useState<string[]>([]);
+  const [intentExplanation, setIntentExplanation] = useState('');
+  const [intentResolvedQuery, setIntentResolvedQuery] = useState('');
+  const [intentLoading, setIntentLoading] = useState(false);
+  const [intentEnhanced, setIntentEnhanced] = useState(false);
   const categories = useMemo(() => ['All', ...new Set(products.map(product => product.category))], [products]);
 
   useEffect(() => {
@@ -33,15 +40,58 @@ export default function Shop() {
     return () => clearTimeout(timer);
   }, [requestedCategory, categories]);
 
+  const searchInput = query.trim();
+  const fallbackIntent = useMemo(() => searchIntentFallback(searchInput), [searchInput]);
+  const categoryProducts = useMemo(() => products.filter(product => category === 'All' || product.category === category), [products, category]);
+  const localSearchMatches = useMemo(() => {
+    if (!searchInput) return categoryProducts;
+    const literal = searchInput.toLowerCase();
+    return categoryProducts.filter(product => `${product.name} ${product.farmer} ${product.category} ${product.location}`.toLowerCase().includes(literal)
+      || matchesSearchTerms(`${product.name} ${product.category}`, fallbackIntent.terms));
+  }, [categoryProducts, searchInput, fallbackIntent.terms]);
+  const effectiveIntentTerms = useMemo(() => searchInput.length >= 3
+    ? [...new Set([...fallbackIntent.terms, ...(localSearchMatches.length === 0 && intentResolvedQuery === searchInput ? intentTerms : [])])]
+    : [], [searchInput, fallbackIntent.terms, localSearchMatches.length, intentResolvedQuery, intentTerms]);
+
+  useEffect(() => {
+    if (loading || error || searchInput.length < 3 || localSearchMatches.length > 0) return;
+    const input = searchInput;
+    const fallback = searchIntentFallback(input);
+    let active = true;
+    const timer = setTimeout(async () => {
+      setIntentResolvedQuery(input);
+      setIntentLoading(true);
+      setIntentEnhanced(false);
+      try {
+        const data = await api<{ terms?: string[]; explanation?: string; enhanced?: boolean }>('/api/ai/assist', {
+          method:'POST', body:JSON.stringify({ feature:'search', input }),
+        });
+        if (!active) return;
+        const terms = data.terms?.length ? [...new Set([...fallback.terms, ...data.terms.map(term => term.toLowerCase())])] : fallback.terms;
+        setIntentTerms(terms);
+        setIntentExplanation(data.explanation || fallback.explanation);
+        setIntentEnhanced(Boolean(data.enhanced) || terms.some(term => !fallback.terms.includes(term)));
+      } catch {
+        if (!active) return;
+        setIntentTerms(fallback.terms);
+        setIntentExplanation('No broader marketplace matches were found');
+      } finally {
+        if (active) setIntentLoading(false);
+      }
+    }, 450);
+    return () => { active = false; clearTimeout(timer); };
+  }, [searchInput, localSearchMatches.length, loading, error]);
+
   const shown = useMemo(() => products
     .filter(product => (category === 'All' || product.category === category)
-      && `${product.name} ${product.farmer}`.toLowerCase().includes(query.trim().toLowerCase())
+      && (!searchInput || `${product.name} ${product.farmer} ${product.category} ${product.location}`.toLowerCase().includes(searchInput.toLowerCase())
+        || matchesSearchTerms(`${product.name} ${product.category}`, effectiveIntentTerms))
       && (!maxWalk || product.distance * 12 <= maxWalk)
       && product.rating >= minRating)
     .sort((a, b) => sort === 'price_low' ? a.price - b.price
       : sort === 'price_high' ? b.price - a.price
         : sort === 'rating' ? b.rating - a.rating
-          : a.distance - b.distance), [products, category, query, maxWalk, minRating, sort]);
+          : a.distance - b.distance), [products, category, searchInput, effectiveIntentTerms, maxWalk, minRating, sort]);
   const visible = shown.slice(0, visibleCount);
   const activeFilters = Number(maxWalk > 0) + Number(minRating > 0) + Number(sort !== 'distance');
   const reset = () => { setSort('distance'); setMaxWalk(0); setMinRating(0); };
@@ -60,6 +110,10 @@ export default function Shop() {
           {activeFilters ? <View style={styles.filterCount}><Text style={styles.filterCountText}>{activeFilters}</Text></View> : null}
         </Pressable>
       </View>
+      {searchInput.length >= 3 && (intentLoading || localSearchMatches.length === 0) ? <View style={[styles.intent, { backgroundColor:theme.surfaceAlt, borderColor:theme.border }]}>
+        {intentLoading ? <ActivityIndicator size="small" color={theme.primary} /> : <Leaf size={18} color={theme.primary} />}
+        <View style={styles.intentCopy}><Text style={[styles.intentTitle, { color:theme.text }]}>{intentLoading ? 'Looking for broader matches...' : intentEnhanced ? `AI-assisted: ${intentExplanation}` : intentExplanation}</Text>{shown.length > 0 ? <Text style={[styles.intentTerms, { color:theme.muted }]}>Matching available produce from related search terms.</Text> : null}</View>
+      </View> : null}
       {filtersOpen ? <FilterPanel theme={theme} shown={shown.length} sort={sort} maxWalk={maxWalk} minRating={minRating} onSort={value => { setSort(value); setVisibleCount(12); }} onWalk={value => { setMaxWalk(value); setVisibleCount(12); }} onRating={value => { setMinRating(value); setVisibleCount(12); }} onReset={reset} onClose={() => setFiltersOpen(false)} /> : null}
       <View style={styles.categoryArea}>
         <Text style={[styles.categoryCaption, { color:theme.muted }]}>PRODUCE CATEGORY</Text>
@@ -84,5 +138,5 @@ function Option({ active, theme, title, onPress }:{ active:boolean; theme:any; t
 function Empty({ theme, title, copy, retry }:{ theme:any; title:string; copy:string; retry?:()=>Promise<void> }) { return <View style={[styles.empty, { backgroundColor:theme.surface, borderColor:theme.border }]}><View style={[styles.emptyIcon, { backgroundColor:theme.surfaceAlt }]}>{retry ? <RefreshCw size={25} color={theme.primary} /> : <Sprout size={27} color={theme.primary} />}</View><Text style={[styles.emptyTitle, { color:theme.text }]}>{title}</Text><Text style={[styles.emptyCopy, { color:theme.muted }]}>{copy}</Text>{retry ? <Pressable onPress={() => void retry()} style={[styles.retry, { backgroundColor:theme.primary }]}><RefreshCw size={18} color={theme.primaryText} /><Text style={{ color:theme.primaryText, fontWeight:'800' }}>Try again</Text></Pressable> : null}</View>; }
 
 const styles = StyleSheet.create({
-  content:{paddingHorizontal:18,paddingTop:14},eyebrow:{fontSize:11,fontWeight:'900',letterSpacing:1.2},title:{fontFamily:'serif',fontSize:31,fontWeight:'600',marginTop:5},subtitle:{fontSize:13,marginTop:5},search:{height:52,marginTop:16,borderWidth:1,borderRadius:14,paddingLeft:14,paddingRight:5,flexDirection:'row',alignItems:'center',gap:9},input:{flex:1,fontSize:15,outlineWidth:0,outlineColor:'transparent'},filterButton:{width:41,height:41,borderRadius:10,alignItems:'center',justifyContent:'center'},filterCount:{position:'absolute',right:-3,top:-4,minWidth:17,height:17,paddingHorizontal:4,borderRadius:9,backgroundColor:'#d99b13',alignItems:'center',justifyContent:'center'},filterCountText:{color:'#17231b',fontSize:9,fontWeight:'900'},filterPanel:{marginTop:10,padding:15,borderWidth:1,borderRadius:14},filterHead:{flexDirection:'row',alignItems:'center',justifyContent:'space-between'},filterTitle:{fontFamily:'serif',fontSize:21,fontWeight:'600'},close:{width:34,height:34,alignItems:'center',justifyContent:'center'},filterLabel:{fontSize:10,fontWeight:'900',letterSpacing:.8,marginTop:14,marginBottom:7},options:{flexDirection:'row',flexWrap:'wrap',gap:7},option:{minHeight:38,paddingHorizontal:11,borderWidth:1,borderRadius:9,flexDirection:'row',alignItems:'center',gap:5},actions:{marginTop:17,flexDirection:'row',gap:8},reset:{height:44,paddingHorizontal:15,borderWidth:1,borderRadius:10,alignItems:'center',justifyContent:'center'},apply:{flex:1,height:44,borderRadius:10,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:6},categoryArea:{marginVertical:13,zIndex:2},categoryCaption:{fontSize:10,fontWeight:'900',letterSpacing:.8,marginBottom:6},categorySelect:{height:48,paddingHorizontal:14,borderWidth:1,borderRadius:12,flexDirection:'row',alignItems:'center',justifyContent:'space-between'},categoryValue:{fontSize:14,fontWeight:'800'},categoryMenu:{marginTop:6,borderWidth:1,borderRadius:12,overflow:'hidden'},categoryOption:{minHeight:43,paddingHorizontal:14,flexDirection:'row',alignItems:'center',justifyContent:'space-between'},list:{gap:11},loadMore:{height:56,marginTop:14,borderWidth:1,borderRadius:13,alignItems:'center',justifyContent:'center',gap:2},empty:{minHeight:240,borderWidth:1,borderRadius:16,alignItems:'center',justifyContent:'center',padding:28},emptyIcon:{width:54,height:54,borderRadius:14,alignItems:'center',justifyContent:'center',marginBottom:16},emptyTitle:{fontFamily:'serif',fontSize:23,fontWeight:'600',textAlign:'center'},emptyCopy:{fontSize:14,lineHeight:21,textAlign:'center',marginTop:7},retry:{height:46,borderRadius:10,paddingHorizontal:20,flexDirection:'row',alignItems:'center',gap:8,marginTop:18}
+  content:{paddingHorizontal:18,paddingTop:14},eyebrow:{fontSize:11,fontWeight:'900',letterSpacing:1.2},title:{fontFamily:'serif',fontSize:31,fontWeight:'600',marginTop:5},subtitle:{fontSize:13,marginTop:5},search:{height:52,marginTop:16,borderWidth:1,borderRadius:14,paddingLeft:14,paddingRight:5,flexDirection:'row',alignItems:'center',gap:9},input:{flex:1,fontSize:15,outlineWidth:0,outlineColor:'transparent'},filterButton:{width:41,height:41,borderRadius:10,alignItems:'center',justifyContent:'center'},filterCount:{position:'absolute',right:-3,top:-4,minWidth:17,height:17,paddingHorizontal:4,borderRadius:9,backgroundColor:'#d99b13',alignItems:'center',justifyContent:'center'},filterCountText:{color:'#17231b',fontSize:9,fontWeight:'900'},intent:{marginTop:10,padding:12,borderWidth:1,borderRadius:12,flexDirection:'row',alignItems:'flex-start',gap:10},intentCopy:{flex:1},intentTitle:{fontSize:13,lineHeight:19,fontWeight:'800'},intentTerms:{fontSize:12,lineHeight:18,marginTop:2},filterPanel:{marginTop:10,padding:15,borderWidth:1,borderRadius:14},filterHead:{flexDirection:'row',alignItems:'center',justifyContent:'space-between'},filterTitle:{fontFamily:'serif',fontSize:21,fontWeight:'600'},close:{width:34,height:34,alignItems:'center',justifyContent:'center'},filterLabel:{fontSize:10,fontWeight:'900',letterSpacing:.8,marginTop:14,marginBottom:7},options:{flexDirection:'row',flexWrap:'wrap',gap:7},option:{minHeight:38,paddingHorizontal:11,borderWidth:1,borderRadius:9,flexDirection:'row',alignItems:'center',gap:5},actions:{marginTop:17,flexDirection:'row',gap:8},reset:{height:44,paddingHorizontal:15,borderWidth:1,borderRadius:10,alignItems:'center',justifyContent:'center'},apply:{flex:1,height:44,borderRadius:10,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:6},categoryArea:{marginVertical:13,zIndex:2},categoryCaption:{fontSize:10,fontWeight:'900',letterSpacing:.8,marginBottom:6},categorySelect:{height:48,paddingHorizontal:14,borderWidth:1,borderRadius:12,flexDirection:'row',alignItems:'center',justifyContent:'space-between'},categoryValue:{fontSize:14,fontWeight:'800'},categoryMenu:{marginTop:6,borderWidth:1,borderRadius:12,overflow:'hidden'},categoryOption:{minHeight:43,paddingHorizontal:14,flexDirection:'row',alignItems:'center',justifyContent:'space-between'},list:{gap:11},loadMore:{height:56,marginTop:14,borderWidth:1,borderRadius:13,alignItems:'center',justifyContent:'center',gap:2},empty:{minHeight:240,borderWidth:1,borderRadius:16,alignItems:'center',justifyContent:'center',padding:28},emptyIcon:{width:54,height:54,borderRadius:14,alignItems:'center',justifyContent:'center',marginBottom:16},emptyTitle:{fontFamily:'serif',fontSize:23,fontWeight:'600',textAlign:'center'},emptyCopy:{fontSize:14,lineHeight:21,textAlign:'center',marginTop:7},retry:{height:46,borderRadius:10,paddingHorizontal:20,flexDirection:'row',alignItems:'center',gap:8,marginTop:18}
 });
