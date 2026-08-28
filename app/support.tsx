@@ -1,3 +1,4 @@
+import { Image } from "expo-image";
 import { useFocusEffect, useRouter } from "expo-router";
 import {
   CheckCircle2,
@@ -167,8 +168,8 @@ export default function Support() {
           </View>
         </View>
         <View style={[styles.aiCard,{backgroundColor:theme.surface,borderColor:theme.border}]}>
-          <View style={styles.cardHead}><Sparkles size={20} color={theme.primary}/><Text style={[styles.cardTitle,{color:theme.text}]}>Ask HarvestNearU</Text></View>
-          <Text style={{color:theme.muted,lineHeight:20}}>Get an answer grounded in verified Help Centre guidance. Create a ticket if your situation is not covered.</Text>
+          <View style={styles.amaraHead}><Image source={require('@/assets/images/amara-avatar.png')} style={styles.amaraAvatar}/><View style={{flex:1}}><Text style={[styles.cardTitle,{color:theme.text}]}>Ask Amara</Text><Text style={[styles.amaraRole,{color:theme.primary}]}>HARVESTNEARU GUIDE</Text></View></View>
+          <Text style={{color:theme.muted,lineHeight:20}}>Amara finds answers grounded in verified Help Centre guidance. Create a ticket if your situation is not covered.</Text>
           <TextInput value={question} onChangeText={setQuestion} placeholder="Ask about delivery, payments, orders, or payouts" placeholderTextColor={theme.muted} style={[styles.aiInput,{color:theme.text,borderColor:theme.border,backgroundColor:theme.background}]}/>
           <Pressable disabled={asking||!question.trim()} onPress={()=>void ask()} style={[styles.aiButton,{backgroundColor:theme.primary,opacity:question.trim()?1:.5}]}>{asking?<ActivityIndicator color={theme.primaryText}/>:<><Sparkles size={16} color={theme.primaryText}/><Text style={{color:theme.primaryText,fontWeight:"900"}}>Find an answer</Text></>}</Pressable>
           {answer?<View style={[styles.aiAnswer,{backgroundColor:theme.surfaceAlt}]}><Text style={{color:theme.text,lineHeight:21}}>{answer.answer}</Text><Text style={[styles.aiSource,{color:theme.primary}]}>Source: {answer.sourceTitle}</Text></View>:null}
@@ -476,6 +477,9 @@ const styles = StyleSheet.create({
   },
   introTitle: { fontSize: 18, fontWeight: "800", marginBottom: 4 },
   aiCard:{padding:18,borderWidth:1,borderRadius:17},
+  amaraHead:{flexDirection:"row",alignItems:"center",gap:11,marginBottom:10},
+  amaraAvatar:{width:48,height:48,borderRadius:16},
+  amaraRole:{fontSize:9,fontWeight:"900",letterSpacing:.9,marginTop:2},
   aiInput:{height:50,borderWidth:1,borderRadius:11,paddingHorizontal:13,fontSize:15,marginTop:14},
   aiButton:{height:48,borderRadius:11,marginTop:10,flexDirection:"row",gap:8,alignItems:"center",justifyContent:"center"},
   aiAnswer:{padding:13,borderRadius:10,marginTop:12},
