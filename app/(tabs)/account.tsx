@@ -57,8 +57,8 @@ function WelcomeOnboarding({theme,dark,setDark,onStart,onSignIn}:{theme:any;dark
       <View style={{flex:1,justifyContent:'flex-end',paddingBottom:compact?2:10,maxWidth:landscape?460:undefined}}>
         <View style={[styles.welcomeAmaraBadge,{backgroundColor:dark?'rgba(4,18,10,.72)':theme.primary}]}><Text style={{color:dark?'#f2c94c':theme.primaryText,fontSize:11,fontWeight:'900',letterSpacing:1.5}}>MEET AMARA</Text></View>
         <Text style={{color:dark?'#fff':theme.text,fontFamily:'Georgia_Bold',fontSize:compact?31:36,lineHeight:compact?35:40,marginTop:9,maxWidth:430}}>Welcome to HarvestNearU</Text>
-        <Text style={{color:dark?'#e1e9e3':theme.muted,fontSize:compact?14:15,lineHeight:compact?20:23,marginTop:12,maxWidth:440}}>Discover today&apos;s harvest from trusted farms nearby, order practical quantities, and track every item to handover.</Text>
-        <Pressable onPress={advance} style={{height:compact?50:54,marginTop:compact?18:24,borderRadius:14,alignItems:'center',justifyContent:'center',backgroundColor:'#72b889'}}><Text style={{color:'#102217',fontSize:15,fontWeight:'900'}}>Get started</Text></Pressable>
+        <Text style={{color:dark?'#e1e9e3':'#174c32',fontSize:compact?14:15,lineHeight:compact?20:23,marginTop:12,maxWidth:440}}>Discover today&apos;s harvest from trusted farms nearby, order practical quantities, and track every item to handover.</Text>
+        <Pressable onPress={advance} style={{height:compact?50:54,marginTop:compact?18:24,borderRadius:14,alignItems:'center',justifyContent:'center',backgroundColor:dark?'#72b889':'#176b45'}}><Text style={{color:dark?'#102217':'#fff',fontSize:15,fontWeight:'900'}}>Get started</Text></Pressable>
         <Pressable onPress={onSignIn} style={{minHeight:46,alignItems:'center',justifyContent:'center'}}><Text style={{color:dark?'#8fd1a3':theme.primary,fontSize:14,fontWeight:'900'}}>I already have an account</Text></Pressable>
       </View>
     </View>
