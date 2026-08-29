@@ -2,6 +2,7 @@ import { Image } from "expo-image";
 import { useFocusEffect, useRouter } from "expo-router";
 import {
   CheckCircle2,
+  ChevronRight,
   ChevronDown,
   ChevronLeft,
   Headphones,
@@ -356,8 +357,11 @@ export default function Support() {
           <ActivityIndicator color={theme.primary} style={{ marginTop: 30 }} />
         ) : tickets.length ? (
           tickets.map((ticket) => (
-            <View
+            <Pressable
               key={ticket.id}
+              accessibilityRole="button"
+              accessibilityLabel={`Open support ticket ${ticket.ticket_number}`}
+              onPress={() => router.push({ pathname: "/support-ticket", params: { id: ticket.id } } as never)}
               style={[
                 styles.ticket,
                 { backgroundColor: theme.surface, borderColor: theme.border },
@@ -375,6 +379,7 @@ export default function Support() {
                 >
                   {label(ticket.status)}
                 </Text>
+                <ChevronRight size={18} color={theme.primary} />
               </View>
               <Text style={[styles.ticketTitle, { color: theme.text }]}>
                 {ticket.subject}
@@ -394,7 +399,7 @@ export default function Support() {
                   {ticket.messages.at(-1)?.body}
                 </Text>
               ) : null}
-            </View>
+            </Pressable>
           ))
         ) : (
           <View

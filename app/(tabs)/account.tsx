@@ -3,7 +3,7 @@ import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 import * as WebBrowser from 'expo-web-browser';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Camera, ChevronLeft as ChevronLeftIcon, Eye, EyeOff, Headphones, LogIn, MailCheck, MapPin, Moon, RotateCcw, ShieldCheck, Sun, Truck, UserRound, UserRoundX } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Animated, Image as NativeImage, Pressable, StyleSheet, Switch, View, useWindowDimensions } from 'react-native';
@@ -16,9 +16,11 @@ import { API_URL, absoluteUrl, api, saveSessionToken } from '@/lib/api';
 
 export default function Account(){
   const router=useRouter();const {theme,user,dark,setDark,signIn,signOut,signUp,refreshSession}=useApp();
+  const params=useLocalSearchParams<{onboarding?:string}>();
   const [mode,setMode]=useState<'signin'|'signup'>('signin');const [role,setRole]=useState<'consumer'|'farmer'>('consumer');const [form,setForm]=useState<Record<string,string>>({});const [busy,setBusy]=useState(false);const [error,setError]=useState('');
   const [onboarding,setOnboarding]=useState<'none'|'welcome'|'signup'|'verify'|'photo'>('none');
   const [code,setCode]=useState('');const [photoUri,setPhotoUri]=useState('');
+  useEffect(()=>{if(params.onboarding==='photo')setOnboarding('photo')},[params.onboarding]);
   const field=(name:string)=>({value:form[name]||'',onChangeText:(value:string)=>setForm(current=>({...current,[name]:value}))});
   async function submit(){setBusy(true);setError('');try{if(mode==='signin'){await signIn(form.identifier||'',form.password||'');setForm({});router.replace('/')}else{let coordinates={latitude:'',longitude:''};if(role==='farmer'){const permission=await Location.requestForegroundPermissionsAsync();if(permission.status!=='granted')throw new Error('Location permission is required to register a farm.');const location=await Location.getCurrentPositionAsync({accuracy:Location.Accuracy.Balanced});coordinates={latitude:String(location.coords.latitude),longitude:String(location.coords.longitude)}}setOnboarding('verify');try{await signUp({...form,...coordinates,role})}catch(reason){setOnboarding('signup');throw reason}try{await api('/api/auth/verify-email',{method:'POST'})}catch(reason){setError((reason as Error).message)}}}catch(reason){setError((reason as Error).message)}finally{setBusy(false)}}
   async function verify(){setBusy(true);setError('');try{await api('/api/auth/verify-email',{method:'PATCH',body:JSON.stringify({code})});setOnboarding('photo')}catch(reason){setError((reason as Error).message)}finally{setBusy(false)}}
