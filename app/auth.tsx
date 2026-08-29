@@ -16,6 +16,7 @@ export default function AuthCallback(){
     if(handled.current)return;
     const token=Array.isArray(params.token)?params.token[0]:params.token;
     const error=Array.isArray(params.error)?params.error[0]:params.error;
+    const newAccount=(Array.isArray(params.newAccount)?params.newAccount[0]:params.newAccount)==='1';
     if(error){handled.current=true;router.replace('/account');return}
     if(!token)return;
     handled.current=true;
@@ -23,7 +24,7 @@ export default function AuthCallback(){
       try{
         await saveSessionToken(token);
         await refreshSession();
-        router.replace(params.newAccount==='1'?'/account?onboarding=photo':'/');
+        router.replace(newAccount?'/account?onboarding=photo':'/');
       }catch{
         setMessage('Sign in could not be completed. Returning to your account.');
         setTimeout(()=>router.replace('/account'),900);
