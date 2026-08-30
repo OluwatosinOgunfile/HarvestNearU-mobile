@@ -7,6 +7,7 @@ import {
   Leaf,
   LockKeyhole,
   LogOut,
+  MessageCircle,
   PackageCheck,
   Pencil,
   Plus,
@@ -46,6 +47,7 @@ type Item = {
 };
 type Order = {
   id: string;
+  order_id: string;
   order_number: string;
   status: string;
   customer: string;
@@ -485,6 +487,7 @@ export default function Workspace() {
                           </View>
                         );
                       })}
+                      {order.fulfilment_method === "farmer_delivery" ? <Pressable onPress={() => router.push({ pathname: "/order-chat", params: { orderId: order.order_id, farmId } } as never)} style={[styles.orderChat, { borderColor: theme.primary }]}><MessageCircle size={16} color={theme.primary}/><Text style={{ color: theme.primary, fontWeight: "900" }}>Chat with customer</Text></Pressable> : null}
                     </View>
                   ))
               ) : (
@@ -1026,6 +1029,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  orderChat:{minHeight:42,marginTop:12,paddingHorizontal:12,borderWidth:1,borderRadius:9,flexDirection:"row",alignItems:"center",justifyContent:"center",gap:8},
   inventory: {
     minHeight: 58,
     paddingVertical: 10,

@@ -8,6 +8,7 @@ import {
   ChevronUp,
   Clock3,
   CreditCard,
+  MessageCircle,
   PackageCheck,
   Printer,
   ShoppingBag,
@@ -348,6 +349,7 @@ function OrderCard({
   onChanged: () => Promise<void>;
   onFeedback: () => void;
 }) {
+  const router = useRouter();
   const [busy, setBusy] = useState("");
   const [message, setMessage] = useState("");
   const [ratingFarm, setRatingFarm] = useState("");
@@ -610,6 +612,12 @@ function OrderCard({
               </View>
             );
           })}
+          {order.fulfilment_method === "farmer_delivery" ? (
+            <View style={styles.chatList}>
+              <Text style={[styles.sectionLabel, { color: theme.muted }]}>ARRANGE WITH FARMER</Text>
+              {order.farms.map((farm) => <Pressable key={farm.id} onPress={() => router.push({ pathname: "/order-chat", params: { orderId: order.id, farmId: farm.id } } as never)} style={[styles.chatButton, { borderColor: theme.primary }]}><MessageCircle size={17} color={theme.primary}/><Text style={{ color: theme.primary, fontWeight: "900" }}>Chat with {farm.name}</Text></Pressable>)}
+            </View>
+          ) : null}
           {order.tracking ? (
             <View
               style={[
@@ -1136,6 +1144,8 @@ function Empty({
 }
 
 const styles = StyleSheet.create({
+  chatList:{gap:8,marginTop:14},
+  chatButton:{minHeight:44,paddingHorizontal:12,borderWidth:1,borderRadius:10,flexDirection:"row",alignItems:"center",gap:8},
   modalBackdrop: {
     flex: 1,
     padding: 20,
