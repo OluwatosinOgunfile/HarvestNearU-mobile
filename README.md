@@ -5,19 +5,19 @@ Native Expo/React Native client for HarvestNearU. This is a separate mobile appl
 ## Included native flows
 
 - Role-aware bottom navigation
-- Consumer and farmer sign-up, sign-in, password visibility, and password recovery
+- Consumer and farmer sign-up with email or Google, guided profile-photo setup, sign-in, password visibility, and password recovery
 - Nearby produce with device or saved-location ranking
-- Search and dynamic category filtering
+- Amara-assisted marketplace search, suggested matches, and dynamic category filtering
 - Full, uncropped, scrollable produce-image previews and linked farm storefronts
 - Free OpenStreetMap farm maps and routed directions
 - Shared active pickup-centre directory with addresses and opening hours
-- Persistent basket, stock limits, and three fulfilment choices: doorstep, farm pickup, or arrange with farmer
+- Persistent basket, saved harvests, stock limits, and three fulfilment choices: doorstep, farm pickup, or arrange with farmer
 - Paystack handoff, database-backed open/completed orders, item tracking, receipt acknowledgement, farm ratings, and printable receipts
-- Farmer multi-farm workspace, farm creation, produce publishing, fulfilment, payout accounts, payout requests, and printable statements
-- Profile pictures, saved delivery location, account credit, email preferences, support tickets, and feedback
+- Farmer multi-farm workspace, farm creation and editing, category creation, listing editing, live stock updates, fulfilment history, reviews, payout accounts, payout requests, and printable statements
+- Profile pictures, saved delivery location, account credit, email preferences, readable support-ticket conversations, and feedback
 - Real-time notification counts plus actionable Expo push notifications with sound
 - Dark mode, role-aware navigation, and sign-out
-- Dedicated administrator/support console access with a shorter staff re-authentication window
+- Secure handoff to the web administrator/support console with a shorter staff re-authentication window
 
 ## Run locally
 

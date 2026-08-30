@@ -1,70 +1,1390 @@
-import * as DocumentPicker from 'expo-document-picker';
-import { Image } from 'expo-image';
-import * as Print from 'expo-print';
-import { useFocusEffect, useRouter } from 'expo-router';
-import * as WebBrowser from 'expo-web-browser';
-import { ChevronDown, ChevronUp, Clock3, CreditCard, PackageCheck, Printer, ShoppingBag, Star, Upload } from 'lucide-react-native';
-import { useCallback, useState } from 'react';
-import { ActivityIndicator, Alert, Modal, Pressable, StyleSheet, View } from 'react-native';
-import { Text, TextInput } from '@/components/typography';
-import { Header } from '@/components/header';
-import { Screen } from '@/components/screen';
-import { useApp } from '@/context/app-context';
-import { absoluteUrl, api, multipartFile } from '@/lib/api';
-import { titleCase } from '@/lib/format';
-import { RECEIVED_ITEM_STATUSES, canAcknowledgeItem, isClosedOrder } from '@/lib/order-status';
-import { receiptHtml } from '@/lib/receipt';
+import * as DocumentPicker from "expo-document-picker";
+import { Image } from "expo-image";
+import * as Print from "expo-print";
+import { useFocusEffect, useRouter } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
+import {
+  ChevronDown,
+  ChevronUp,
+  Clock3,
+  CreditCard,
+  PackageCheck,
+  Printer,
+  ShoppingBag,
+  Star,
+  Upload,
+} from "lucide-react-native";
+import { useCallback, useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  Modal,
+  Pressable,
+  StyleSheet,
+  View,
+} from "react-native";
+import { Text, TextInput } from "@/components/typography";
+import { Header } from "@/components/header";
+import { Screen } from "@/components/screen";
+import { useApp } from "@/context/app-context";
+import { absoluteUrl, api, multipartFile } from "@/lib/api";
+import { titleCase } from "@/lib/format";
+import {
+  RECEIVED_ITEM_STATUSES,
+  canAcknowledgeItem,
+  isClosedOrder,
+} from "@/lib/order-status";
+import { receiptHtml } from "@/lib/receipt";
 
-type OrderItem={id:string;name:string;farm:string;unit:string;quantity:number;unit_price_kobo:number;image?:string;status:string};
-type OrderFarm={id:string;name:string;rating:number|null;comment:string|null};
-type Order={id:string;order_number:string;status:string;total_kobo:number;subtotal_kobo:number;delivery_fee_kobo:number;service_fee_kobo?:number;discount_kobo:number;fulfilment_method:string;delivery_address_snapshot?:{line1?:string;city?:string;state?:string}|null;placed_at:string;paid_at?:string|null;customer_first_name?:string;customer_last_name?:string;customer_email?:string;customer_phone?:string|null;payment_provider?:string|null;payment_reference?:string|null;payment_channel?:string|null;payment_status?:string|null;receipt_submitted?:boolean;refund?:{status:string;resolution_method:string;amount_kobo:number;cancellation_fee_kobo:number}|null;farms:OrderFarm[];items:OrderItem[]};
-const label=(value:string)=>value.replaceAll('_',' ').replace(/\b\w/g,char=>char.toUpperCase());
-const money=(kobo:number)=>`\u20A6${(Number(kobo||0)/100).toLocaleString('en-NG')}`;
-const separator='\u00B7';
+type OrderItem = {
+  id: string;
+  name: string;
+  farm: string;
+  unit: string;
+  quantity: number;
+  unit_price_kobo: number;
+  image?: string;
+  status: string;
+};
+type OrderFarm = {
+  id: string;
+  name: string;
+  rating: number | null;
+  comment: string | null;
+};
+type Order = {
+  id: string;
+  order_number: string;
+  status: string;
+  total_kobo: number;
+  subtotal_kobo: number;
+  delivery_fee_kobo: number;
+  service_fee_kobo?: number;
+  discount_kobo: number;
+  fulfilment_method: string;
+  delivery_address_snapshot?: {
+    line1?: string;
+    city?: string;
+    state?: string;
+  } | null;
+  placed_at: string;
+  paid_at?: string | null;
+  customer_first_name?: string;
+  customer_last_name?: string;
+  customer_email?: string;
+  customer_phone?: string | null;
+  payment_provider?: string | null;
+  payment_reference?: string | null;
+  payment_channel?: string | null;
+  payment_status?: string | null;
+  receipt_submitted?: boolean;
+  refund?: {
+    status: string;
+    resolution_method: string;
+    amount_kobo: number;
+    cancellation_fee_kobo: number;
+  } | null;
+  tracking?: {
+    status: string;
+    tracking_code: string;
+    courier_name?: string | null;
+    courier_phone?: string | null;
+    events: {
+      id: string;
+      status: string;
+      message: string;
+      occurred_at: string;
+    }[];
+  } | null;
+  farms: OrderFarm[];
+  items: OrderItem[];
+};
+const label = (value: string) =>
+  value.replaceAll("_", " ").replace(/\b\w/g, (char) => char.toUpperCase());
+const money = (kobo: number) =>
+  `\u20A6${(Number(kobo || 0) / 100).toLocaleString("en-NG")}`;
+const separator = "\u00B7";
 
-export default function Orders(){
-  const router=useRouter();const {theme,user}=useApp();
-  const [orders,setOrders]=useState<Order[]>([]);const [expanded,setExpanded]=useState<Set<string>>(new Set());const [view,setView]=useState<'open'|'completed'>('open');
-  const [loading,setLoading]=useState(false);const [paying,setPaying]=useState<string|null>(null);const [error,setError]=useState('');
-  const load=useCallback(async()=>{if(!user)return;setLoading(true);setError('');try{const result=await api<{orders:Order[]}>('/api/orders');setOrders(result.orders||[])}catch(reason){setError((reason as Error).message)}finally{setLoading(false)}},[user]);
-  useFocusEffect(useCallback(()=>{void load()},[load]));
-  const toggle=(id:string)=>setExpanded(current=>{const next=new Set(current);if(next.has(id))next.delete(id);else next.add(id);return next});
-  async function completePayment(order:Order){setPaying(order.id);setError('');try{const result=await api<{authorizationUrl:string}>('/api/payments/paystack/initialize',{method:'POST',body:JSON.stringify({orderId:order.id,client:'mobile'})});await WebBrowser.openAuthSessionAsync(result.authorizationUrl,'harvestnearu://orders',{presentationStyle:WebBrowser.WebBrowserPresentationStyle.FORM_SHEET});await load()}catch(reason){setError((reason as Error).message)}finally{setPaying(null)}}
-  const openOrders=orders.filter(order=>!isClosedOrder(order.status));const completedOrders=orders.filter(order=>isClosedOrder(order.status));const visibleOrders=view==='open'?openOrders:completedOrders;
-  return <Screen refreshing={loading} onRefresh={load}><Header/><View style={styles.content}><Text style={[styles.eyebrow,{color:theme.primary}]}>YOUR PURCHASES</Text><Text style={[styles.title,{color:theme.text}]}>My orders</Text><Text style={[styles.subtitle,{color:theme.muted}]}>Track, receive, rate, and keep receipts for every purchase.</Text>
-    {user&&orders.length?<View style={[styles.tabs,{backgroundColor:theme.surfaceAlt,borderColor:theme.border}]}><OrderTab active={view==='open'} label="Open" count={openOrders.length} theme={theme} onPress={()=>setView('open')}/><OrderTab active={view==='completed'} label="Completed" count={completedOrders.length} theme={theme} onPress={()=>setView('completed')}/></View>:null}
-    {!user?<Empty theme={theme} icon={<ShoppingBag size={30} color={theme.primary}/>} title="Sign in to see your orders" text="Your purchases, tracking updates, receipts, and ratings will appear here." action="Go to account" onPress={()=>router.push('/account')}/>:loading&&!orders.length?<ActivityIndicator color={theme.primary} style={{marginTop:70}}/>:error&&!orders.length?<Empty theme={theme} icon={<Clock3 size={30} color={theme.primary}/>} title="Orders unavailable" text={error} action="Try again" onPress={load}/>:orders.length?<>{error?<Text style={styles.error}>{error}</Text>:null}{visibleOrders.length?visibleOrders.map(order=><OrderCard key={order.id} order={order} open={expanded.has(order.id)} theme={theme} paying={paying===order.id} onToggle={()=>toggle(order.id)} onPay={()=>void completePayment(order)} onChanged={load} onFeedback={()=>router.push('/support' as never)}/>):<Empty theme={theme} compact icon={view==='open'?<Clock3 size={28} color={theme.primary}/>:<PackageCheck size={28} color={theme.primary}/>} title={view==='open'?'No open orders':'No completed orders'} text={view==='open'?'Orders awaiting payment or fulfilment will appear here.':'Fulfilled and closed orders will appear here.'} action={view==='open'?'Explore produce':'View open orders'} onPress={()=>view==='open'?router.push('/shop'):setView('open')}/>}</>:<Empty theme={theme} icon={<PackageCheck size={30} color={theme.primary}/>} title="No orders yet" text="Your first fresh harvest is waiting in the marketplace." action="Explore produce" onPress={()=>router.push('/shop')}/>}</View></Screen>
+export default function Orders() {
+  const router = useRouter();
+  const { theme, user } = useApp();
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [view, setView] = useState<"open" | "completed">("open");
+  const [loading, setLoading] = useState(false);
+  const [paying, setPaying] = useState<string | null>(null);
+  const [error, setError] = useState("");
+  const load = useCallback(async () => {
+    if (!user) return;
+    setLoading(true);
+    setError("");
+    try {
+      const result = await api<{ orders: Order[] }>("/api/orders");
+      setOrders(result.orders || []);
+    } catch (reason) {
+      setError((reason as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  }, [user]);
+  useFocusEffect(
+    useCallback(() => {
+      void load();
+    }, [load]),
+  );
+  const toggle = (id: string) =>
+    setExpanded((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  async function completePayment(order: Order) {
+    setPaying(order.id);
+    setError("");
+    try {
+      const result = await api<{ authorizationUrl: string }>(
+        "/api/payments/paystack/initialize",
+        {
+          method: "POST",
+          body: JSON.stringify({ orderId: order.id, client: "mobile" }),
+        },
+      );
+      await WebBrowser.openAuthSessionAsync(
+        result.authorizationUrl,
+        "harvestnearu://orders",
+        {
+          presentationStyle: WebBrowser.WebBrowserPresentationStyle.FORM_SHEET,
+        },
+      );
+      await load();
+    } catch (reason) {
+      setError((reason as Error).message);
+    } finally {
+      setPaying(null);
+    }
+  }
+  const openOrders = orders.filter((order) => !isClosedOrder(order.status));
+  const completedOrders = orders.filter((order) => isClosedOrder(order.status));
+  const visibleOrders = view === "open" ? openOrders : completedOrders;
+  return (
+    <Screen refreshing={loading} onRefresh={load}>
+      <Header />
+      <View style={styles.content}>
+        <Text style={[styles.eyebrow, { color: theme.primary }]}>
+          YOUR PURCHASES
+        </Text>
+        <Text style={[styles.title, { color: theme.text }]}>My orders</Text>
+        <Text style={[styles.subtitle, { color: theme.muted }]}>
+          Track, receive, rate, and keep receipts for every purchase.
+        </Text>
+        {user && orders.length ? (
+          <View
+            style={[
+              styles.tabs,
+              { backgroundColor: theme.surfaceAlt, borderColor: theme.border },
+            ]}
+          >
+            <OrderTab
+              active={view === "open"}
+              label="Open"
+              count={openOrders.length}
+              theme={theme}
+              onPress={() => setView("open")}
+            />
+            <OrderTab
+              active={view === "completed"}
+              label="Completed"
+              count={completedOrders.length}
+              theme={theme}
+              onPress={() => setView("completed")}
+            />
+          </View>
+        ) : null}
+        {!user ? (
+          <Empty
+            theme={theme}
+            icon={<ShoppingBag size={30} color={theme.primary} />}
+            title="Sign in to see your orders"
+            text="Your purchases, tracking updates, receipts, and ratings will appear here."
+            action="Go to account"
+            onPress={() => router.push("/account")}
+          />
+        ) : loading && !orders.length ? (
+          <ActivityIndicator color={theme.primary} style={{ marginTop: 70 }} />
+        ) : error && !orders.length ? (
+          <Empty
+            theme={theme}
+            icon={<Clock3 size={30} color={theme.primary} />}
+            title="Orders unavailable"
+            text={error}
+            action="Try again"
+            onPress={load}
+          />
+        ) : orders.length ? (
+          <>
+            {error ? <Text style={styles.error}>{error}</Text> : null}
+            {visibleOrders.length ? (
+              visibleOrders.map((order) => (
+                <OrderCard
+                  key={order.id}
+                  order={order}
+                  open={expanded.has(order.id)}
+                  theme={theme}
+                  paying={paying === order.id}
+                  onToggle={() => toggle(order.id)}
+                  onPay={() => void completePayment(order)}
+                  onChanged={load}
+                  onFeedback={() => router.push("/support" as never)}
+                />
+              ))
+            ) : (
+              <Empty
+                theme={theme}
+                compact
+                icon={
+                  view === "open" ? (
+                    <Clock3 size={28} color={theme.primary} />
+                  ) : (
+                    <PackageCheck size={28} color={theme.primary} />
+                  )
+                }
+                title={
+                  view === "open" ? "No open orders" : "No completed orders"
+                }
+                text={
+                  view === "open"
+                    ? "Orders awaiting payment or fulfilment will appear here."
+                    : "Fulfilled and closed orders will appear here."
+                }
+                action={
+                  view === "open" ? "Explore produce" : "View open orders"
+                }
+                onPress={() =>
+                  view === "open" ? router.push("/shop") : setView("open")
+                }
+              />
+            )}
+          </>
+        ) : (
+          <Empty
+            theme={theme}
+            icon={<PackageCheck size={30} color={theme.primary} />}
+            title="No orders yet"
+            text="Your first fresh harvest is waiting in the marketplace."
+            action="Explore produce"
+            onPress={() => router.push("/shop")}
+          />
+        )}
+      </View>
+    </Screen>
+  );
 }
 
-function OrderTab({active,label:tabLabel,count,theme,onPress}:{active:boolean;label:string;count:number;theme:any;onPress:()=>void}){return <Pressable accessibilityRole="tab" accessibilityState={{selected:active}} onPress={onPress} style={[styles.tab,active&&{backgroundColor:theme.surface}]}><Text style={{color:active?theme.primary:theme.muted,fontWeight:'900'}}>{tabLabel}</Text><View style={[styles.tabCount,{backgroundColor:active?theme.primary:theme.border}]}><Text style={{color:active?theme.primaryText:theme.text,fontSize:10,fontWeight:'900'}}>{count}</Text></View></Pressable>}
-
-function OrderCard({order,open,theme,paying,onToggle,onPay,onChanged,onFeedback}:{order:Order;open:boolean;theme:any;paying:boolean;onToggle:()=>void;onPay:()=>void;onChanged:()=>Promise<void>;onFeedback:()=>void}){
-  const [busy,setBusy]=useState('');const [message,setMessage]=useState('');const [ratingFarm,setRatingFarm]=useState('');const [rating,setRating]=useState(0);const [comment,setComment]=useState('');const [refundMode,setRefundMode]=useState<'store_credit'|'bank_refund'|'none'>('none');const [bank,setBank]=useState({bankName:'',accountName:'',accountNumber:''});
-  const pending=order.status==='pending_payment';const completed=['delivered','collected'].includes(order.status);const manual=pending&&order.payment_provider==='manual';const cancellable=manual&&Boolean(order.receipt_submitted);const eligibleFarms=order.farms?.filter(farm=>order.items.some(item=>item.farm===farm.name&&RECEIVED_ITEM_STATUSES.has(item.status)))||[];
-  async function act(key:string,task:()=>Promise<unknown>,success:string){setBusy(key);setMessage('');try{await task();setMessage(success);await onChanged()}catch(reason){setMessage((reason as Error).message)}finally{setBusy('')}}
-  async function receive(item:OrderItem){setBusy(item.id);setMessage('');try{const result=await api<{farm?:OrderFarm}>('/api/orders',{method:'PATCH',body:JSON.stringify({orderId:order.id,itemId:item.id,action:'confirm_item_receipt'})});setMessage(`${titleCase(item.name)} marked as received.`);await onChanged();const farm=result.farm||order.farms.find(value=>value.name===item.farm);if(farm){setRatingFarm(farm.id);setRating(Number(farm.rating||0));setComment(farm.comment||'')}}catch(reason){setMessage((reason as Error).message)}finally{setBusy('')}}
-  async function uploadReceipt(){const result=await DocumentPicker.getDocumentAsync({type:['image/jpeg','image/png','image/webp','application/pdf'],copyToCacheDirectory:true});if(result.canceled)return;const asset=result.assets[0];if(asset.size&&asset.size>5*1024*1024){setMessage('Payment receipts must be 5 MB or smaller.');return}const form=new FormData();form.append('receipt',multipartFile(asset.uri));await act('receipt',()=>api(`/api/payments/manual/${order.id}`,{method:'POST',body:form}),'Receipt submitted for administrator review.')}
-  async function submitRating(){const farm=order.farms.find(item=>item.id===ratingFarm);if(!farm||!rating)return;await act('rating',()=>api('/api/reviews',{method:'POST',body:JSON.stringify({orderId:order.id,farmId:farm.id,rating,comment})}),`Rating saved for ${farm.name}.`);setRatingFarm('');setRating(0);setComment('')}
-  async function cancel(){if(refundMode==='none')return;await act('cancel',()=>api('/api/orders/cancel',{method:'POST',body:JSON.stringify({orderId:order.id,resolutionMethod:refundMode,...bank})}),'Cancellation and refund request submitted.');setRefundMode('none')}
-  async function printReceipt(){await Print.printAsync({html:receiptHtml({...order,items:order.items.map(item=>({...item,name:titleCase(item.name)}))})})}
-  return <View style={[styles.order,{backgroundColor:theme.surface,borderColor:theme.border}]}>
-    <Pressable onPress={onToggle} accessibilityRole="button" accessibilityState={{expanded:open}} style={styles.orderTop}><View style={[styles.orderIcon,{backgroundColor:theme.surfaceAlt}]}><PackageCheck size={21} color={theme.primary}/></View><View style={{flex:1}}><Text style={[styles.orderNo,{color:theme.text}]}>Order #{order.order_number}</Text><Text style={[styles.meta,{color:theme.muted}]}>{new Date(order.placed_at).toLocaleDateString('en-NG')} {separator} {order.items?.length||0} {order.items?.length===1?'item':'items'}</Text></View><View style={[styles.chevron,{borderColor:theme.border}]}>{open?<ChevronUp size={19} color={theme.text}/>:<ChevronDown size={19} color={theme.text}/>}</View></Pressable>
-    {open?<View style={[styles.details,{borderTopColor:theme.border}]}>{pending?<View style={[styles.payment,{backgroundColor:theme.surfaceAlt}]}><CreditCard size={22} color={theme.primary}/><View style={{flex:1}}><Text style={[styles.paymentTitle,{color:theme.text}]}>{manual?(order.receipt_submitted?'Payment under review':'Payment receipt required'):'Complete your payment'}</Text><Text style={[styles.paymentCopy,{color:theme.muted}]}>{manual?'Upload proof of your bank transfer for administrator confirmation.':'Continue securely with Paystack to confirm this order.'}</Text></View>{manual&&!order.receipt_submitted?<ActionButton busy={busy==='receipt'} title="Upload" theme={theme} icon={<Upload size={15} color={theme.primaryText}/>} onPress={()=>void uploadReceipt()}/>:!manual?<ActionButton busy={paying} title="Pay now" theme={theme} onPress={onPay}/>:null}</View>:null}
-      <Text style={[styles.sectionLabel,{color:theme.muted}]}>ORDER ITEMS</Text>{order.items?.map(item=>{const canReceive=canAcknowledgeItem(order.fulfilment_method,item.status);return <View key={item.id} style={[styles.item,{borderColor:theme.border}]}><Image source={{uri:absoluteUrl(item.image)}} style={styles.image} contentFit="cover"/><View style={{flex:1}}><Text style={[styles.itemName,{color:theme.text}]}>{titleCase(item.name)}</Text><Text style={[styles.itemMeta,{color:theme.muted}]}>{item.farm} {separator} {item.quantity} {item.unit}</Text><Text style={[styles.itemStatus,{color:theme.primary}]}>{label(item.status)}</Text>{canReceive?<Pressable disabled={busy===item.id} onPress={()=>void receive(item)} style={[styles.receive,{borderColor:theme.primary}]}>{busy===item.id?<ActivityIndicator size="small" color={theme.primary}/>:<Text style={{color:theme.primary,fontWeight:'900'}}>I received this product</Text>}</Pressable>:null}</View><Text style={[styles.itemPrice,{color:theme.text}]}>{money(item.unit_price_kobo*item.quantity)}</Text></View>})}
-      {eligibleFarms.length?<View style={[styles.ratingPanel,{backgroundColor:theme.surfaceAlt}]}><Text style={[styles.paymentTitle,{color:theme.text}]}>Rate farms you received from</Text>{eligibleFarms.map(farm=><Pressable key={farm.id} onPress={()=>{setRatingFarm(farm.id);setRating(Number(farm.rating||0));setComment(farm.comment||'')}} style={styles.farmRating}><Text style={{color:theme.text,fontWeight:'800',flex:1}}>{farm.name}</Text><Star size={17} color="#d99b13" fill={farm.rating?'#d99b13':'transparent'}/><Text style={{color:theme.muted}}>{farm.rating?`${farm.rating}/5`:'Rate'}</Text></Pressable>)}{ratingFarm?<View style={[styles.ratingForm,{borderTopColor:theme.border}]}><View style={styles.stars}>{[1,2,3,4,5].map(value=><Pressable key={value} accessibilityLabel={`${value} stars`} onPress={()=>setRating(value)}><Star size={27} color="#d99b13" fill={value<=rating?'#d99b13':'transparent'}/></Pressable>)}</View><TextInput value={comment} onChangeText={setComment} placeholder="Optional feedback for this farm" placeholderTextColor={theme.muted} style={[styles.ratingInput,{color:theme.text,borderColor:theme.border,backgroundColor:theme.surface}]}/><ActionButton busy={busy==='rating'} title="Save rating" theme={theme} onPress={()=>void submitRating()}/></View>:null}</View>:null}
-      {cancellable?<View style={[styles.cancelPanel,{borderColor:theme.border}]}><Text style={[styles.paymentTitle,{color:theme.text}]}>Cancel before payment review</Text><Text style={[styles.paymentCopy,{color:theme.muted}]}>Choose full account credit or a bank refund less the {'\u20A6'}500 processing fee.</Text><View style={styles.cancelChoices}><Choice active={refundMode==='store_credit'} title="Account credit" theme={theme} onPress={()=>setRefundMode('store_credit')}/><Choice active={refundMode==='bank_refund'} title="Bank refund" theme={theme} onPress={()=>setRefundMode('bank_refund')}/></View>{refundMode==='bank_refund'?<><MiniField theme={theme} placeholder="Bank name" value={bank.bankName} onChangeText={(value:string)=>setBank(current=>({...current,bankName:value}))}/><MiniField theme={theme} placeholder="Account name" value={bank.accountName} onChangeText={(value:string)=>setBank(current=>({...current,accountName:value}))}/><MiniField theme={theme} placeholder="Account number" keyboardType="number-pad" value={bank.accountNumber} onChangeText={(value:string)=>setBank(current=>({...current,accountNumber:value}))}/></>:null}{refundMode!=='none'?<Pressable disabled={busy==='cancel'} onPress={()=>Alert.alert('Cancel this order?','The order will be closed and its stock released.',[{text:'Keep order',style:'cancel'},{text:'Cancel order',style:'destructive',onPress:()=>void cancel()}])} style={styles.cancelButton}>{busy==='cancel'?<ActivityIndicator size="small" color="#a84335"/>:<Text style={{color:'#a84335',fontWeight:'900'}}>Submit cancellation</Text>}</Pressable>:null}</View>:null}
-      {order.refund?<Text style={[styles.refundStatus,{color:theme.text,backgroundColor:theme.surfaceAlt}]}>Refund: {label(order.refund.status)} {separator} {money(order.refund.amount_kobo)}</Text>:null}
-      {message?<Text accessibilityLiveRegion="polite" style={[styles.inlineMessage,{color:message.includes('submitted')||message.includes('saved')||message.includes('received')?theme.primary:'#a84335'}]}>{message}</Text>:null}
-      <View style={styles.orderActions}>{!pending&&!['cancelled'].includes(order.status)?<Pressable onPress={()=>void printReceipt()} style={[styles.secondaryAction,{borderColor:theme.border}]}><Printer size={16} color={theme.primary}/><Text style={{color:theme.text,fontWeight:'800'}}>Print receipt</Text></Pressable>:null}{completed?<Pressable onPress={onFeedback} style={[styles.secondaryAction,{borderColor:theme.border}]}><Star size={16} color={theme.primary}/><Text style={{color:theme.text,fontWeight:'800'}}>Order feedback</Text></Pressable>:null}</View>
-    </View>:null}
-    <Modal visible={Boolean(ratingFarm)} transparent animationType="fade" onRequestClose={()=>setRatingFarm('')}><Pressable onPress={()=>setRatingFarm('')} style={styles.modalBackdrop}><Pressable onPress={(event)=>event.stopPropagation()} style={[styles.ratingModal,{backgroundColor:theme.surface,borderColor:theme.border}]}><Text style={[styles.sectionLabel,{color:theme.primary}]}>FARM RATING</Text><Text style={[styles.emptyTitle,{color:theme.text,marginTop:5}]}>{order.farms.find(farm=>farm.id===ratingFarm)?.name||'Rate this farm'}</Text><Text style={[styles.paymentCopy,{color:theme.muted,fontSize:13,lineHeight:19}]}>Your rating helps nearby customers choose confidently.</Text><View style={[styles.stars,{marginTop:18}]}>{[1,2,3,4,5].map(value=><Pressable key={value} accessibilityLabel={`${value} stars`} onPress={()=>setRating(value)}><Star size={32} color="#d99b13" fill={value<=rating?'#d99b13':'transparent'}/></Pressable>)}</View><TextInput value={comment} onChangeText={setComment} multiline placeholder="What stood out about the produce or service?" placeholderTextColor={theme.muted} style={[styles.ratingInput,{minHeight:82,color:theme.text,borderColor:theme.border,backgroundColor:theme.background}]}/><ActionButton busy={busy==='rating'} title="Submit rating" theme={theme} onPress={()=>void submitRating()}/><Pressable onPress={()=>setRatingFarm('')} style={styles.later}><Text style={{color:theme.muted,fontWeight:'800'}}>Rate later</Text></Pressable></Pressable></Pressable></Modal>
-    <View style={[styles.orderBottom,{borderTopColor:theme.border}]}><View><Text style={[styles.summaryLabel,{color:theme.muted}]}>FULFILMENT</Text><Text style={[styles.summaryValue,{color:theme.text}]}>{label(order.fulfilment_method)}</Text></View><View style={styles.summaryRight}><Text style={[styles.status,{color:pending?'#b87512':theme.primary}]}>{label(order.status)}</Text><Text style={[styles.total,{color:theme.text}]}>{money(order.total_kobo)}</Text></View></View>
-  </View>
+function OrderTab({
+  active,
+  label: tabLabel,
+  count,
+  theme,
+  onPress,
+}: {
+  active: boolean;
+  label: string;
+  count: number;
+  theme: any;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="tab"
+      accessibilityState={{ selected: active }}
+      onPress={onPress}
+      style={[styles.tab, active && { backgroundColor: theme.surface }]}
+    >
+      <Text
+        style={{
+          color: active ? theme.primary : theme.muted,
+          fontWeight: "900",
+        }}
+      >
+        {tabLabel}
+      </Text>
+      <View
+        style={[
+          styles.tabCount,
+          { backgroundColor: active ? theme.primary : theme.border },
+        ]}
+      >
+        <Text
+          style={{
+            color: active ? theme.primaryText : theme.text,
+            fontSize: 10,
+            fontWeight: "900",
+          }}
+        >
+          {count}
+        </Text>
+      </View>
+    </Pressable>
+  );
 }
 
-function ActionButton({busy,title,theme,onPress,icon}:{busy:boolean;title:string;theme:any;onPress:()=>void;icon?:React.ReactNode}){return <Pressable disabled={busy} onPress={onPress} style={[styles.payButton,{backgroundColor:theme.primary}]}>{busy?<ActivityIndicator size="small" color={theme.primaryText}/>:<>{icon}<Text style={{color:theme.primaryText,fontWeight:'900'}}>{title}</Text></>}</Pressable>}
-function Choice({active,title,theme,onPress}:{active:boolean;title:string;theme:any;onPress:()=>void}){return <Pressable onPress={onPress} style={[styles.choice,{backgroundColor:active?theme.surfaceAlt:theme.surface,borderColor:active?theme.primary:theme.border}]}><Text style={{color:theme.text,fontWeight:'800'}}>{title}</Text></Pressable>}
-function MiniField({theme,...props}:{theme:any;[key:string]:any}){return <TextInput {...props} placeholderTextColor={theme.muted} style={[styles.miniInput,{color:theme.text,borderColor:theme.border,backgroundColor:theme.surface}]}/>}
-function Empty({theme,icon,title,text,action,onPress,compact=false}:{theme:any;icon:React.ReactNode;title:string;text:string;action:string;onPress:()=>void;compact?:boolean}){return <View style={[styles.empty,compact&&styles.emptyCompact,{backgroundColor:theme.surface,borderColor:theme.border}]}><View style={[styles.emptyIcon,{backgroundColor:theme.surfaceAlt}]}>{icon}</View><Text style={[styles.emptyTitle,{color:theme.text}]}>{title}</Text><Text style={[styles.emptyText,{color:theme.muted}]}>{text}</Text><Pressable onPress={onPress} style={[styles.button,{backgroundColor:theme.primary}]}><Text style={{color:theme.primaryText,fontWeight:'800'}}>{action}</Text></Pressable></View>}
+function OrderCard({
+  order,
+  open,
+  theme,
+  paying,
+  onToggle,
+  onPay,
+  onChanged,
+  onFeedback,
+}: {
+  order: Order;
+  open: boolean;
+  theme: any;
+  paying: boolean;
+  onToggle: () => void;
+  onPay: () => void;
+  onChanged: () => Promise<void>;
+  onFeedback: () => void;
+}) {
+  const [busy, setBusy] = useState("");
+  const [message, setMessage] = useState("");
+  const [ratingFarm, setRatingFarm] = useState("");
+  const [rating, setRating] = useState(0);
+  const [comment, setComment] = useState("");
+  const [refundMode, setRefundMode] = useState<
+    "store_credit" | "bank_refund" | "none"
+  >("none");
+  const [bank, setBank] = useState({
+    bankName: "",
+    accountName: "",
+    accountNumber: "",
+  });
+  const pending = order.status === "pending_payment";
+  const completed = ["delivered", "collected"].includes(order.status);
+  const manual = pending && order.payment_provider === "manual";
+  const cancellable = manual && Boolean(order.receipt_submitted);
+  const eligibleFarms =
+    order.farms?.filter((farm) =>
+      order.items.some(
+        (item) =>
+          item.farm === farm.name && RECEIVED_ITEM_STATUSES.has(item.status),
+      ),
+    ) || [];
+  async function act(
+    key: string,
+    task: () => Promise<unknown>,
+    success: string,
+  ) {
+    setBusy(key);
+    setMessage("");
+    try {
+      await task();
+      setMessage(success);
+      await onChanged();
+    } catch (reason) {
+      setMessage((reason as Error).message);
+    } finally {
+      setBusy("");
+    }
+  }
+  async function receive(item: OrderItem) {
+    setBusy(item.id);
+    setMessage("");
+    try {
+      const result = await api<{ farm?: OrderFarm }>("/api/orders", {
+        method: "PATCH",
+        body: JSON.stringify({
+          orderId: order.id,
+          itemId: item.id,
+          action: "confirm_item_receipt",
+        }),
+      });
+      setMessage(`${titleCase(item.name)} marked as received.`);
+      await onChanged();
+      const farm =
+        result.farm || order.farms.find((value) => value.name === item.farm);
+      if (farm) {
+        setRatingFarm(farm.id);
+        setRating(Number(farm.rating || 0));
+        setComment(farm.comment || "");
+      }
+    } catch (reason) {
+      setMessage((reason as Error).message);
+    } finally {
+      setBusy("");
+    }
+  }
+  async function uploadReceipt() {
+    const result = await DocumentPicker.getDocumentAsync({
+      type: ["image/jpeg", "image/png", "image/webp", "application/pdf"],
+      copyToCacheDirectory: true,
+    });
+    if (result.canceled) return;
+    const asset = result.assets[0];
+    if (asset.size && asset.size > 5 * 1024 * 1024) {
+      setMessage("Payment receipts must be 5 MB or smaller.");
+      return;
+    }
+    const form = new FormData();
+    form.append("receipt", multipartFile(asset.uri));
+    await act(
+      "receipt",
+      () =>
+        api(`/api/payments/manual/${order.id}`, { method: "POST", body: form }),
+      "Receipt submitted for administrator review.",
+    );
+  }
+  async function submitRating() {
+    const farm = order.farms.find((item) => item.id === ratingFarm);
+    if (!farm || !rating) return;
+    await act(
+      "rating",
+      () =>
+        api("/api/reviews", {
+          method: "POST",
+          body: JSON.stringify({
+            orderId: order.id,
+            farmId: farm.id,
+            rating,
+            comment,
+          }),
+        }),
+      `Rating saved for ${farm.name}.`,
+    );
+    setRatingFarm("");
+    setRating(0);
+    setComment("");
+  }
+  async function cancel() {
+    if (refundMode === "none") return;
+    await act(
+      "cancel",
+      () =>
+        api("/api/orders/cancel", {
+          method: "POST",
+          body: JSON.stringify({
+            orderId: order.id,
+            resolutionMethod: refundMode,
+            ...bank,
+          }),
+        }),
+      "Cancellation and refund request submitted.",
+    );
+    setRefundMode("none");
+  }
+  async function printReceipt() {
+    await Print.printAsync({
+      html: receiptHtml({
+        ...order,
+        items: order.items.map((item) => ({
+          ...item,
+          name: titleCase(item.name),
+        })),
+      }),
+    });
+  }
+  return (
+    <View
+      style={[
+        styles.order,
+        { backgroundColor: theme.surface, borderColor: theme.border },
+      ]}
+    >
+      <Pressable
+        onPress={onToggle}
+        accessibilityRole="button"
+        accessibilityState={{ expanded: open }}
+        style={styles.orderTop}
+      >
+        <View style={[styles.orderIcon, { backgroundColor: theme.surfaceAlt }]}>
+          <PackageCheck size={21} color={theme.primary} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.orderNo, { color: theme.text }]}>
+            Order #{order.order_number}
+          </Text>
+          <Text style={[styles.meta, { color: theme.muted }]}>
+            {new Date(order.placed_at).toLocaleDateString("en-NG")} {separator}{" "}
+            {order.items?.length || 0}{" "}
+            {order.items?.length === 1 ? "item" : "items"}
+          </Text>
+        </View>
+        <View style={[styles.chevron, { borderColor: theme.border }]}>
+          {open ? (
+            <ChevronUp size={19} color={theme.text} />
+          ) : (
+            <ChevronDown size={19} color={theme.text} />
+          )}
+        </View>
+      </Pressable>
+      {open ? (
+        <View style={[styles.details, { borderTopColor: theme.border }]}>
+          {pending ? (
+            <View
+              style={[styles.payment, { backgroundColor: theme.surfaceAlt }]}
+            >
+              <CreditCard size={22} color={theme.primary} />
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.paymentTitle, { color: theme.text }]}>
+                  {manual
+                    ? order.receipt_submitted
+                      ? "Payment under review"
+                      : "Payment receipt required"
+                    : "Complete your payment"}
+                </Text>
+                <Text style={[styles.paymentCopy, { color: theme.muted }]}>
+                  {manual
+                    ? "Upload proof of your bank transfer for administrator confirmation."
+                    : "Continue securely with Paystack to confirm this order."}
+                </Text>
+              </View>
+              {manual && !order.receipt_submitted ? (
+                <ActionButton
+                  busy={busy === "receipt"}
+                  title="Upload"
+                  theme={theme}
+                  icon={<Upload size={15} color={theme.primaryText} />}
+                  onPress={() => void uploadReceipt()}
+                />
+              ) : !manual ? (
+                <ActionButton
+                  busy={paying}
+                  title="Pay now"
+                  theme={theme}
+                  onPress={onPay}
+                />
+              ) : null}
+            </View>
+          ) : null}
+          <Text style={[styles.sectionLabel, { color: theme.muted }]}>
+            ORDER ITEMS
+          </Text>
+          {order.items?.map((item) => {
+            const canReceive = canAcknowledgeItem(
+              order.fulfilment_method,
+              item.status,
+            );
+            return (
+              <View
+                key={item.id}
+                style={[styles.item, { borderColor: theme.border }]}
+              >
+                <Image
+                  source={{ uri: absoluteUrl(item.image) }}
+                  style={styles.image}
+                  contentFit="cover"
+                />
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.itemName, { color: theme.text }]}>
+                    {titleCase(item.name)}
+                  </Text>
+                  <Text style={[styles.itemMeta, { color: theme.muted }]}>
+                    {item.farm} {separator} {item.quantity} {item.unit}
+                  </Text>
+                  <Text style={[styles.itemStatus, { color: theme.primary }]}>
+                    {label(item.status)}
+                  </Text>
+                  {canReceive ? (
+                    <Pressable
+                      disabled={busy === item.id}
+                      onPress={() => void receive(item)}
+                      style={[styles.receive, { borderColor: theme.primary }]}
+                    >
+                      {busy === item.id ? (
+                        <ActivityIndicator size="small" color={theme.primary} />
+                      ) : (
+                        <Text
+                          style={{ color: theme.primary, fontWeight: "900" }}
+                        >
+                          I received this product
+                        </Text>
+                      )}
+                    </Pressable>
+                  ) : null}
+                </View>
+                <Text style={[styles.itemPrice, { color: theme.text }]}>
+                  {money(item.unit_price_kobo * item.quantity)}
+                </Text>
+              </View>
+            );
+          })}
+          {order.tracking ? (
+            <View
+              style={[
+                styles.tracking,
+                {
+                  backgroundColor: theme.surfaceAlt,
+                  borderColor: theme.border,
+                },
+              ]}
+            >
+              <View style={styles.trackingHead}>
+                <View>
+                  <Text style={[styles.sectionLabel, { color: theme.primary }]}>
+                    DELIVERY TRACKING
+                  </Text>
+                  <Text style={[styles.trackingCode, { color: theme.text }]}>
+                    {order.tracking.tracking_code ||
+                      label(order.tracking.status)}
+                  </Text>
+                </View>
+                <Text style={[styles.trackingStatus, { color: theme.primary }]}>
+                  {label(order.tracking.status)}
+                </Text>
+              </View>
+              {order.tracking.courier_name ? (
+                <Text style={{ color: theme.muted, fontSize: 12 }}>
+                  {order.tracking.courier_name}
+                  {order.tracking.courier_phone
+                    ? ` · ${order.tracking.courier_phone}`
+                    : ""}
+                </Text>
+              ) : null}
+              {order.tracking.events?.length ? (
+                <View style={styles.timeline}>
+                  {order.tracking.events.map((event, index) => (
+                    <View key={event.id} style={styles.timelineEvent}>
+                      <View style={styles.timelineMarker}>
+                        <View
+                          style={[
+                            styles.timelineDot,
+                            { backgroundColor: theme.primary },
+                          ]}
+                        />
+                        {index < order.tracking!.events.length - 1 ? (
+                          <View
+                            style={[
+                              styles.timelineLine,
+                              { backgroundColor: theme.border },
+                            ]}
+                          />
+                        ) : null}
+                      </View>
+                      <View
+                        style={{
+                          flex: 1,
+                          paddingBottom:
+                            index < order.tracking!.events.length - 1 ? 16 : 0,
+                        }}
+                      >
+                        <Text style={{ color: theme.text, fontWeight: "800" }}>
+                          {event.message}
+                        </Text>
+                        <Text
+                          style={{
+                            color: theme.muted,
+                            fontSize: 11,
+                            marginTop: 3,
+                          }}
+                        >
+                          {new Date(event.occurred_at).toLocaleString("en-NG", {
+                            dateStyle: "medium",
+                            timeStyle: "short",
+                          })}
+                        </Text>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              ) : (
+                <Text style={{ color: theme.muted, marginTop: 10 }}>
+                  Delivery updates will appear here.
+                </Text>
+              )}
+            </View>
+          ) : null}
+          {eligibleFarms.length ? (
+            <View
+              style={[
+                styles.ratingPanel,
+                { backgroundColor: theme.surfaceAlt },
+              ]}
+            >
+              <Text style={[styles.paymentTitle, { color: theme.text }]}>
+                Rate farms you received from
+              </Text>
+              {eligibleFarms.map((farm) => (
+                <Pressable
+                  key={farm.id}
+                  onPress={() => {
+                    setRatingFarm(farm.id);
+                    setRating(Number(farm.rating || 0));
+                    setComment(farm.comment || "");
+                  }}
+                  style={styles.farmRating}
+                >
+                  <Text
+                    style={{ color: theme.text, fontWeight: "800", flex: 1 }}
+                  >
+                    {farm.name}
+                  </Text>
+                  <Star
+                    size={17}
+                    color="#d99b13"
+                    fill={farm.rating ? "#d99b13" : "transparent"}
+                  />
+                  <Text style={{ color: theme.muted }}>
+                    {farm.rating ? `${farm.rating}/5` : "Rate"}
+                  </Text>
+                </Pressable>
+              ))}
+              {ratingFarm ? (
+                <View
+                  style={[styles.ratingForm, { borderTopColor: theme.border }]}
+                >
+                  <View style={styles.stars}>
+                    {[1, 2, 3, 4, 5].map((value) => (
+                      <Pressable
+                        key={value}
+                        accessibilityLabel={`${value} stars`}
+                        onPress={() => setRating(value)}
+                      >
+                        <Star
+                          size={27}
+                          color="#d99b13"
+                          fill={value <= rating ? "#d99b13" : "transparent"}
+                        />
+                      </Pressable>
+                    ))}
+                  </View>
+                  <TextInput
+                    value={comment}
+                    onChangeText={setComment}
+                    placeholder="Optional feedback for this farm"
+                    placeholderTextColor={theme.muted}
+                    style={[
+                      styles.ratingInput,
+                      {
+                        color: theme.text,
+                        borderColor: theme.border,
+                        backgroundColor: theme.surface,
+                      },
+                    ]}
+                  />
+                  <ActionButton
+                    busy={busy === "rating"}
+                    title="Save rating"
+                    theme={theme}
+                    onPress={() => void submitRating()}
+                  />
+                </View>
+              ) : null}
+            </View>
+          ) : null}
+          {cancellable ? (
+            <View style={[styles.cancelPanel, { borderColor: theme.border }]}>
+              <Text style={[styles.paymentTitle, { color: theme.text }]}>
+                Cancel before payment review
+              </Text>
+              <Text style={[styles.paymentCopy, { color: theme.muted }]}>
+                Choose full account credit or a bank refund less the {"\u20A6"}
+                500 processing fee.
+              </Text>
+              <View style={styles.cancelChoices}>
+                <Choice
+                  active={refundMode === "store_credit"}
+                  title="Account credit"
+                  theme={theme}
+                  onPress={() => setRefundMode("store_credit")}
+                />
+                <Choice
+                  active={refundMode === "bank_refund"}
+                  title="Bank refund"
+                  theme={theme}
+                  onPress={() => setRefundMode("bank_refund")}
+                />
+              </View>
+              {refundMode === "bank_refund" ? (
+                <>
+                  <MiniField
+                    theme={theme}
+                    placeholder="Bank name"
+                    value={bank.bankName}
+                    onChangeText={(value: string) =>
+                      setBank((current) => ({ ...current, bankName: value }))
+                    }
+                  />
+                  <MiniField
+                    theme={theme}
+                    placeholder="Account name"
+                    value={bank.accountName}
+                    onChangeText={(value: string) =>
+                      setBank((current) => ({ ...current, accountName: value }))
+                    }
+                  />
+                  <MiniField
+                    theme={theme}
+                    placeholder="Account number"
+                    keyboardType="number-pad"
+                    value={bank.accountNumber}
+                    onChangeText={(value: string) =>
+                      setBank((current) => ({
+                        ...current,
+                        accountNumber: value,
+                      }))
+                    }
+                  />
+                </>
+              ) : null}
+              {refundMode !== "none" ? (
+                <Pressable
+                  disabled={busy === "cancel"}
+                  onPress={() =>
+                    Alert.alert(
+                      "Cancel this order?",
+                      "The order will be closed and its stock released.",
+                      [
+                        { text: "Keep order", style: "cancel" },
+                        {
+                          text: "Cancel order",
+                          style: "destructive",
+                          onPress: () => void cancel(),
+                        },
+                      ],
+                    )
+                  }
+                  style={styles.cancelButton}
+                >
+                  {busy === "cancel" ? (
+                    <ActivityIndicator size="small" color="#a84335" />
+                  ) : (
+                    <Text style={{ color: "#a84335", fontWeight: "900" }}>
+                      Submit cancellation
+                    </Text>
+                  )}
+                </Pressable>
+              ) : null}
+            </View>
+          ) : null}
+          {order.refund ? (
+            <Text
+              style={[
+                styles.refundStatus,
+                { color: theme.text, backgroundColor: theme.surfaceAlt },
+              ]}
+            >
+              Refund: {label(order.refund.status)} {separator}{" "}
+              {money(order.refund.amount_kobo)}
+            </Text>
+          ) : null}
+          {message ? (
+            <Text
+              accessibilityLiveRegion="polite"
+              style={[
+                styles.inlineMessage,
+                {
+                  color:
+                    message.includes("submitted") ||
+                    message.includes("saved") ||
+                    message.includes("received")
+                      ? theme.primary
+                      : "#a84335",
+                },
+              ]}
+            >
+              {message}
+            </Text>
+          ) : null}
+          <View style={styles.orderActions}>
+            {!pending && !["cancelled"].includes(order.status) ? (
+              <Pressable
+                onPress={() => void printReceipt()}
+                style={[styles.secondaryAction, { borderColor: theme.border }]}
+              >
+                <Printer size={16} color={theme.primary} />
+                <Text style={{ color: theme.text, fontWeight: "800" }}>
+                  Print receipt
+                </Text>
+              </Pressable>
+            ) : null}
+            {completed ? (
+              <Pressable
+                onPress={onFeedback}
+                style={[styles.secondaryAction, { borderColor: theme.border }]}
+              >
+                <Star size={16} color={theme.primary} />
+                <Text style={{ color: theme.text, fontWeight: "800" }}>
+                  Order feedback
+                </Text>
+              </Pressable>
+            ) : null}
+          </View>
+        </View>
+      ) : null}
+      <Modal
+        visible={Boolean(ratingFarm)}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setRatingFarm("")}
+      >
+        <Pressable
+          onPress={() => setRatingFarm("")}
+          style={styles.modalBackdrop}
+        >
+          <Pressable
+            onPress={(event) => event.stopPropagation()}
+            style={[
+              styles.ratingModal,
+              { backgroundColor: theme.surface, borderColor: theme.border },
+            ]}
+          >
+            <Text style={[styles.sectionLabel, { color: theme.primary }]}>
+              FARM RATING
+            </Text>
+            <Text
+              style={[styles.emptyTitle, { color: theme.text, marginTop: 5 }]}
+            >
+              {order.farms.find((farm) => farm.id === ratingFarm)?.name ||
+                "Rate this farm"}
+            </Text>
+            <Text
+              style={[
+                styles.paymentCopy,
+                { color: theme.muted, fontSize: 13, lineHeight: 19 },
+              ]}
+            >
+              Your rating helps nearby customers choose confidently.
+            </Text>
+            <View style={[styles.stars, { marginTop: 18 }]}>
+              {[1, 2, 3, 4, 5].map((value) => (
+                <Pressable
+                  key={value}
+                  accessibilityLabel={`${value} stars`}
+                  onPress={() => setRating(value)}
+                >
+                  <Star
+                    size={32}
+                    color="#d99b13"
+                    fill={value <= rating ? "#d99b13" : "transparent"}
+                  />
+                </Pressable>
+              ))}
+            </View>
+            <TextInput
+              value={comment}
+              onChangeText={setComment}
+              multiline
+              placeholder="What stood out about the produce or service?"
+              placeholderTextColor={theme.muted}
+              style={[
+                styles.ratingInput,
+                {
+                  minHeight: 82,
+                  color: theme.text,
+                  borderColor: theme.border,
+                  backgroundColor: theme.background,
+                },
+              ]}
+            />
+            <ActionButton
+              busy={busy === "rating"}
+              title="Submit rating"
+              theme={theme}
+              onPress={() => void submitRating()}
+            />
+            <Pressable onPress={() => setRatingFarm("")} style={styles.later}>
+              <Text style={{ color: theme.muted, fontWeight: "800" }}>
+                Rate later
+              </Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
+      <View style={[styles.orderBottom, { borderTopColor: theme.border }]}>
+        <View>
+          <Text style={[styles.summaryLabel, { color: theme.muted }]}>
+            FULFILMENT
+          </Text>
+          <Text style={[styles.summaryValue, { color: theme.text }]}>
+            {label(order.fulfilment_method)}
+          </Text>
+        </View>
+        <View style={styles.summaryRight}>
+          <Text
+            style={[
+              styles.status,
+              { color: pending ? "#b87512" : theme.primary },
+            ]}
+          >
+            {label(order.status)}
+          </Text>
+          <Text style={[styles.total, { color: theme.text }]}>
+            {money(order.total_kobo)}
+          </Text>
+        </View>
+      </View>
+    </View>
+  );
+}
 
-const styles=StyleSheet.create({modalBackdrop:{flex:1,padding:20,backgroundColor:'rgba(8,22,14,.68)',alignItems:'center',justifyContent:'center'},ratingModal:{width:'100%',maxWidth:440,padding:22,borderWidth:1,borderRadius:18},later:{height:42,alignItems:'center',justifyContent:'center',marginTop:5},content:{padding:20},eyebrow:{fontSize:11,fontWeight:'900',letterSpacing:1.2},title:{fontFamily:'Georgia_Regular',fontSize:35,marginTop:7},subtitle:{fontSize:14,marginTop:7,marginBottom:18},tabs:{height:52,padding:4,borderWidth:1,borderRadius:14,flexDirection:'row',marginBottom:16},tab:{flex:1,borderRadius:10,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:8},tabCount:{minWidth:20,height:20,paddingHorizontal:5,borderRadius:10,alignItems:'center',justifyContent:'center'},error:{color:'#9f3f32',backgroundColor:'#fff0ed',padding:12,borderRadius:10,marginBottom:12},order:{borderWidth:1,borderRadius:15,marginBottom:12,overflow:'hidden'},orderTop:{padding:15,flexDirection:'row',alignItems:'center',gap:12},orderIcon:{width:44,height:44,borderRadius:12,alignItems:'center',justifyContent:'center'},orderNo:{fontSize:15,fontWeight:'800'},meta:{fontSize:12,marginTop:4},chevron:{width:36,height:36,borderWidth:1,borderRadius:10,alignItems:'center',justifyContent:'center'},details:{padding:14,borderTopWidth:1},payment:{padding:13,borderRadius:12,flexDirection:'row',alignItems:'center',gap:10,marginBottom:16},paymentTitle:{fontSize:14,fontWeight:'900'},paymentCopy:{fontSize:11,lineHeight:16,marginTop:3},payButton:{minHeight:40,minWidth:76,paddingHorizontal:12,borderRadius:9,flexDirection:'row',gap:5,alignItems:'center',justifyContent:'center'},sectionLabel:{fontSize:10,fontWeight:'900',letterSpacing:.8,marginBottom:8},item:{paddingVertical:12,borderTopWidth:1,flexDirection:'row',alignItems:'flex-start',gap:10},image:{width:48,height:48,borderRadius:9},itemName:{fontSize:14,fontWeight:'800'},itemMeta:{fontSize:11,marginTop:3},itemStatus:{fontSize:11,fontWeight:'800',marginTop:4},itemPrice:{fontSize:13,fontWeight:'900'},receive:{minHeight:35,marginTop:9,paddingHorizontal:10,borderWidth:1,borderRadius:8,alignSelf:'flex-start',justifyContent:'center'},ratingPanel:{padding:13,borderRadius:12,marginTop:12},farmRating:{minHeight:43,flexDirection:'row',alignItems:'center',gap:7},ratingForm:{borderTopWidth:1,paddingTop:12},stars:{flexDirection:'row',gap:7,marginBottom:10},ratingInput:{minHeight:46,borderWidth:1,borderRadius:9,paddingHorizontal:11,marginBottom:9},cancelPanel:{padding:13,borderWidth:1,borderRadius:12,marginTop:12},cancelChoices:{flexDirection:'row',gap:8,marginVertical:10},choice:{flex:1,minHeight:42,borderWidth:1,borderRadius:9,alignItems:'center',justifyContent:'center'},miniInput:{height:45,borderWidth:1,borderRadius:9,paddingHorizontal:11,marginBottom:8},cancelButton:{height:44,alignItems:'center',justifyContent:'center'},refundStatus:{padding:11,borderRadius:9,marginTop:12,fontWeight:'800'},inlineMessage:{fontSize:12,fontWeight:'700',marginTop:12},orderActions:{flexDirection:'row',flexWrap:'wrap',gap:8,marginTop:13},secondaryAction:{minHeight:42,paddingHorizontal:12,borderWidth:1,borderRadius:9,flexDirection:'row',alignItems:'center',gap:6},orderBottom:{paddingHorizontal:15,minHeight:62,borderTopWidth:1,flexDirection:'row',alignItems:'center',justifyContent:'space-between'},summaryLabel:{fontSize:9,fontWeight:'800'},summaryValue:{fontSize:12,fontWeight:'800',marginTop:3},summaryRight:{alignItems:'flex-end'},status:{fontSize:11,fontWeight:'900'},total:{fontSize:16,fontWeight:'900',marginTop:3},empty:{marginTop:30,minHeight:330,padding:28,borderWidth:1,borderRadius:18,alignItems:'center',justifyContent:'center'},emptyCompact:{minHeight:270,marginTop:0},emptyIcon:{width:64,height:64,borderRadius:19,alignItems:'center',justifyContent:'center'},emptyTitle:{fontFamily:'Georgia_Regular',fontSize:24,marginTop:18,textAlign:'center'},emptyText:{fontSize:14,lineHeight:21,textAlign:'center',marginTop:7},button:{height:46,marginTop:20,paddingHorizontal:18,borderRadius:11,justifyContent:'center'}});
+function ActionButton({
+  busy,
+  title,
+  theme,
+  onPress,
+  icon,
+}: {
+  busy: boolean;
+  title: string;
+  theme: any;
+  onPress: () => void;
+  icon?: React.ReactNode;
+}) {
+  return (
+    <Pressable
+      disabled={busy}
+      onPress={onPress}
+      style={[styles.payButton, { backgroundColor: theme.primary }]}
+    >
+      {busy ? (
+        <ActivityIndicator size="small" color={theme.primaryText} />
+      ) : (
+        <>
+          {icon}
+          <Text style={{ color: theme.primaryText, fontWeight: "900" }}>
+            {title}
+          </Text>
+        </>
+      )}
+    </Pressable>
+  );
+}
+function Choice({
+  active,
+  title,
+  theme,
+  onPress,
+}: {
+  active: boolean;
+  title: string;
+  theme: any;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={[
+        styles.choice,
+        {
+          backgroundColor: active ? theme.surfaceAlt : theme.surface,
+          borderColor: active ? theme.primary : theme.border,
+        },
+      ]}
+    >
+      <Text style={{ color: theme.text, fontWeight: "800" }}>{title}</Text>
+    </Pressable>
+  );
+}
+function MiniField({ theme, ...props }: { theme: any; [key: string]: any }) {
+  return (
+    <TextInput
+      {...props}
+      placeholderTextColor={theme.muted}
+      style={[
+        styles.miniInput,
+        {
+          color: theme.text,
+          borderColor: theme.border,
+          backgroundColor: theme.surface,
+        },
+      ]}
+    />
+  );
+}
+function Empty({
+  theme,
+  icon,
+  title,
+  text,
+  action,
+  onPress,
+  compact = false,
+}: {
+  theme: any;
+  icon: React.ReactNode;
+  title: string;
+  text: string;
+  action: string;
+  onPress: () => void;
+  compact?: boolean;
+}) {
+  return (
+    <View
+      style={[
+        styles.empty,
+        compact && styles.emptyCompact,
+        { backgroundColor: theme.surface, borderColor: theme.border },
+      ]}
+    >
+      <View style={[styles.emptyIcon, { backgroundColor: theme.surfaceAlt }]}>
+        {icon}
+      </View>
+      <Text style={[styles.emptyTitle, { color: theme.text }]}>{title}</Text>
+      <Text style={[styles.emptyText, { color: theme.muted }]}>{text}</Text>
+      <Pressable
+        onPress={onPress}
+        style={[styles.button, { backgroundColor: theme.primary }]}
+      >
+        <Text style={{ color: theme.primaryText, fontWeight: "800" }}>
+          {action}
+        </Text>
+      </Pressable>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  modalBackdrop: {
+    flex: 1,
+    padding: 20,
+    backgroundColor: "rgba(8,22,14,.68)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  ratingModal: {
+    width: "100%",
+    maxWidth: 440,
+    padding: 22,
+    borderWidth: 1,
+    borderRadius: 18,
+  },
+  later: {
+    height: 42,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 5,
+  },
+  content: { padding: 20 },
+  eyebrow: { fontSize: 11, fontWeight: "900", letterSpacing: 1.2 },
+  title: { fontFamily: "Georgia_Regular", fontSize: 35, marginTop: 7 },
+  subtitle: { fontSize: 14, marginTop: 7, marginBottom: 18 },
+  tabs: {
+    height: 52,
+    padding: 4,
+    borderWidth: 1,
+    borderRadius: 14,
+    flexDirection: "row",
+    marginBottom: 16,
+  },
+  tab: {
+    flex: 1,
+    borderRadius: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  tabCount: {
+    minWidth: 20,
+    height: 20,
+    paddingHorizontal: 5,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  error: {
+    color: "#9f3f32",
+    backgroundColor: "#fff0ed",
+    padding: 12,
+    borderRadius: 10,
+    marginBottom: 12,
+  },
+  order: {
+    borderWidth: 1,
+    borderRadius: 15,
+    marginBottom: 12,
+    overflow: "hidden",
+  },
+  orderTop: {
+    padding: 15,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  orderIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  orderNo: { fontSize: 15, fontWeight: "800" },
+  meta: { fontSize: 12, marginTop: 4 },
+  chevron: {
+    width: 36,
+    height: 36,
+    borderWidth: 1,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  details: { padding: 14, borderTopWidth: 1 },
+  payment: {
+    padding: 13,
+    borderRadius: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginBottom: 16,
+  },
+  paymentTitle: { fontSize: 14, fontWeight: "900" },
+  paymentCopy: { fontSize: 11, lineHeight: 16, marginTop: 3 },
+  payButton: {
+    minHeight: 40,
+    minWidth: 76,
+    paddingHorizontal: 12,
+    borderRadius: 9,
+    flexDirection: "row",
+    gap: 5,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  sectionLabel: {
+    fontSize: 10,
+    fontWeight: "900",
+    letterSpacing: 0.8,
+    marginBottom: 8,
+  },
+  item: {
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 10,
+  },
+  image: { width: 48, height: 48, borderRadius: 9 },
+  itemName: { fontSize: 14, fontWeight: "800" },
+  itemMeta: { fontSize: 11, marginTop: 3 },
+  itemStatus: { fontSize: 11, fontWeight: "800", marginTop: 4 },
+  itemPrice: { fontSize: 13, fontWeight: "900" },
+  tracking: { marginTop: 12, padding: 14, borderWidth: 1, borderRadius: 12 },
+  trackingHead: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  trackingCode: { fontSize: 16, fontWeight: "900", marginTop: -3 },
+  trackingStatus: { fontSize: 11, fontWeight: "900" },
+  timeline: { marginTop: 15 },
+  timelineEvent: { flexDirection: "row", gap: 10 },
+  timelineMarker: { width: 14, alignItems: "center" },
+  timelineDot: { width: 9, height: 9, borderRadius: 5 },
+  timelineLine: { width: 2, flex: 1, minHeight: 28, marginTop: 3 },
+  receive: {
+    minHeight: 35,
+    marginTop: 9,
+    paddingHorizontal: 10,
+    borderWidth: 1,
+    borderRadius: 8,
+    alignSelf: "flex-start",
+    justifyContent: "center",
+  },
+  ratingPanel: { padding: 13, borderRadius: 12, marginTop: 12 },
+  farmRating: {
+    minHeight: 43,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+  },
+  ratingForm: { borderTopWidth: 1, paddingTop: 12 },
+  stars: { flexDirection: "row", gap: 7, marginBottom: 10 },
+  ratingInput: {
+    minHeight: 46,
+    borderWidth: 1,
+    borderRadius: 9,
+    paddingHorizontal: 11,
+    marginBottom: 9,
+  },
+  cancelPanel: { padding: 13, borderWidth: 1, borderRadius: 12, marginTop: 12 },
+  cancelChoices: { flexDirection: "row", gap: 8, marginVertical: 10 },
+  choice: {
+    flex: 1,
+    minHeight: 42,
+    borderWidth: 1,
+    borderRadius: 9,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  miniInput: {
+    height: 45,
+    borderWidth: 1,
+    borderRadius: 9,
+    paddingHorizontal: 11,
+    marginBottom: 8,
+  },
+  cancelButton: { height: 44, alignItems: "center", justifyContent: "center" },
+  refundStatus: {
+    padding: 11,
+    borderRadius: 9,
+    marginTop: 12,
+    fontWeight: "800",
+  },
+  inlineMessage: { fontSize: 12, fontWeight: "700", marginTop: 12 },
+  orderActions: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginTop: 13,
+  },
+  secondaryAction: {
+    minHeight: 42,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderRadius: 9,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  orderBottom: {
+    paddingHorizontal: 15,
+    minHeight: 62,
+    borderTopWidth: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  summaryLabel: { fontSize: 9, fontWeight: "800" },
+  summaryValue: { fontSize: 12, fontWeight: "800", marginTop: 3 },
+  summaryRight: { alignItems: "flex-end" },
+  status: { fontSize: 11, fontWeight: "900" },
+  total: { fontSize: 16, fontWeight: "900", marginTop: 3 },
+  empty: {
+    marginTop: 30,
+    minHeight: 330,
+    padding: 28,
+    borderWidth: 1,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  emptyCompact: { minHeight: 270, marginTop: 0 },
+  emptyIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: 19,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  emptyTitle: {
+    fontFamily: "Georgia_Regular",
+    fontSize: 24,
+    marginTop: 18,
+    textAlign: "center",
+  },
+  emptyText: {
+    fontSize: 14,
+    lineHeight: 21,
+    textAlign: "center",
+    marginTop: 7,
+  },
+  button: {
+    height: 46,
+    marginTop: 20,
+    paddingHorizontal: 18,
+    borderRadius: 11,
+    justifyContent: "center",
+  },
+});

@@ -1,78 +1,1463 @@
-import { Image } from 'expo-image';
-import * as ImagePicker from 'expo-image-picker';
-import * as Location from 'expo-location';
-import * as WebBrowser from 'expo-web-browser';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Camera, ChevronLeft as ChevronLeftIcon, Eye, EyeOff, Headphones, LogIn, MailCheck, MapPin, Moon, RotateCcw, ShieldCheck, Store, Sun, Truck, UserRound, UserRoundX } from 'lucide-react-native';
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, Animated, Image as NativeImage, Pressable, StyleSheet, Switch, View, useWindowDimensions } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Header } from '@/components/header';
-import { Screen } from '@/components/screen';
-import { Text, TextInput } from '@/components/typography';
-import { useApp } from '@/context/app-context';
-import { API_URL, absoluteUrl, api, saveSessionToken } from '@/lib/api';
+import { Image } from "expo-image";
+import * as ImagePicker from "expo-image-picker";
+import * as Location from "expo-location";
+import * as WebBrowser from "expo-web-browser";
+import { LinearGradient } from "expo-linear-gradient";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import {
+  Camera,
+  ChevronLeft as ChevronLeftIcon,
+  Eye,
+  EyeOff,
+  Headphones,
+  Heart,
+  LogIn,
+  MailCheck,
+  MapPin,
+  Moon,
+  RotateCcw,
+  ShieldCheck,
+  Store,
+  Sun,
+  Truck,
+  UserRound,
+  UserRoundX,
+} from "lucide-react-native";
+import { useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  Animated,
+  Image as NativeImage,
+  Pressable,
+  StyleSheet,
+  Switch,
+  View,
+  useWindowDimensions,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Header } from "@/components/header";
+import { Screen } from "@/components/screen";
+import { Text, TextInput } from "@/components/typography";
+import { useApp } from "@/context/app-context";
+import { API_URL, absoluteUrl, api, saveSessionToken } from "@/lib/api";
 
-export default function Account(){
-  const router=useRouter();const {theme,user,dark,setDark,signIn,signOut,signUp,refreshSession}=useApp();
-  const params=useLocalSearchParams<{onboarding?:string}>();
-  const [mode,setMode]=useState<'signin'|'signup'>('signin');const [role,setRole]=useState<'consumer'|'farmer'>('consumer');const [form,setForm]=useState<Record<string,string>>({});const [busy,setBusy]=useState(false);const [error,setError]=useState('');
-  const [onboarding,setOnboarding]=useState<'none'|'welcome'|'signup'|'verify'|'photo'>('none');
-  const [code,setCode]=useState('');const [photoUri,setPhotoUri]=useState('');
-  useEffect(()=>{if(params.onboarding==='photo')setOnboarding('photo')},[params.onboarding]);
-  const field=(name:string)=>({value:form[name]||'',onChangeText:(value:string)=>setForm(current=>({...current,[name]:value}))});
-  async function submit(){setBusy(true);setError('');try{if(mode==='signin'){await signIn(form.identifier||'',form.password||'');setForm({});router.replace('/')}else{let coordinates={latitude:'',longitude:''};if(role==='farmer'){const permission=await Location.requestForegroundPermissionsAsync();if(permission.status!=='granted')throw new Error('Location permission is required to register a farm.');const location=await Location.getCurrentPositionAsync({accuracy:Location.Accuracy.Balanced});coordinates={latitude:String(location.coords.latitude),longitude:String(location.coords.longitude)}}setOnboarding('verify');try{await signUp({...form,...coordinates,role})}catch(reason){setOnboarding('signup');throw reason}try{await api('/api/auth/verify-email',{method:'POST'})}catch(reason){setError((reason as Error).message)}}}catch(reason){setError((reason as Error).message)}finally{setBusy(false)}}
-  async function verify(){setBusy(true);setError('');try{await api('/api/auth/verify-email',{method:'PATCH',body:JSON.stringify({code})});setOnboarding('photo')}catch(reason){setError((reason as Error).message)}finally{setBusy(false)}}
-  async function resend(){setBusy(true);setError('');try{await api('/api/auth/verify-email',{method:'POST'})}catch(reason){setError((reason as Error).message)}finally{setBusy(false)}}
-  async function continueWithGoogle(){setBusy(true);setError('');try{const result=await WebBrowser.openAuthSessionAsync(`${API_URL}/api/auth/google?mobile=1`,'harvestnearu://auth');if(result.type!=='success'||!result.url)throw new Error('Google sign-in was cancelled.');const callback=new URL(result.url);const oauthError=callback.searchParams.get('error');const token=callback.searchParams.get('token');if(oauthError)throw new Error(oauthError.replaceAll('_',' '));if(!token)throw new Error('Google did not return a mobile session.');const newAccount=callback.searchParams.get('newAccount')==='1';await saveSessionToken(token);await refreshSession();setPhotoUri('');setOnboarding(newAccount?'photo':'none');router.replace(newAccount?'/account?onboarding=photo':'/')}catch(reason){setError((reason as Error).message)}finally{setBusy(false)}}
-  async function choosePhoto(){setError('');const result=await ImagePicker.launchImageLibraryAsync({mediaTypes:['images'],allowsEditing:true,aspect:[1,1],quality:.82,base64:true});if(result.canceled)return;const asset=result.assets[0];if(asset.fileSize&&asset.fileSize>3*1024*1024){setError('Choose a profile picture smaller than 3 MB.');return}if(!asset.base64){setError('The selected picture could not be read.');return}setPhotoUri(asset.uri);setBusy(true);try{await api('/api/profile/avatar',{method:'POST',body:JSON.stringify({imageBase64:asset.base64,mimeType:asset.mimeType||'image/jpeg',fileName:asset.fileName||'profile-picture.jpg'})});await refreshSession()}catch(reason){setPhotoUri('');setError((reason as Error).message)}finally{setBusy(false)}}
-  function finish(){setForm({});setCode('');setOnboarding('none');router.replace('/')}
-  if(onboarding==='welcome')return <WelcomeOnboarding theme={theme} dark={dark} setDark={setDark} onStart={()=>{setMode('signup');setOnboarding('signup')}} onSignIn={()=>{setMode('signin');setForm({});setError('');setOnboarding('none')}}/>;
-  if(onboarding==='verify')return <OnboardingShell theme={theme} step={3}><AmaraGuide theme={theme} image={require('@/assets/images/amara-email-guide.png')} title="Check your inbox" copy="I’ll stay with you while you enter the six-digit code."/><View style={[styles.stepIcon,{backgroundColor:theme.surfaceAlt}]}><MailCheck size={34} color={theme.primary}/></View><Text style={[styles.onboardingTitle,{color:theme.text}]}>Confirm your email</Text><Text style={[styles.onboardingCopy,{color:theme.muted}]}>We sent a 6-digit code to {form.email}. Enter it below to secure your account.</Text><TextInput value={code} onChangeText={value=>setCode(value.replace(/\D/g,'').slice(0,6))} keyboardType="number-pad" maxLength={6} autoFocus style={[styles.otp,{color:theme.text,borderColor:theme.border,backgroundColor:theme.surface}]}/>{error?<Text style={styles.error}>{error}</Text>:null}<Primary theme={theme} label="Verify email" busy={busy} disabled={code.length!==6} onPress={()=>void verify()}/><Pressable disabled={busy} onPress={()=>void resend()}><Text style={[styles.secondaryLink,{color:theme.primary}]}>Send a new code</Text></Pressable></OnboardingShell>;
-  if(onboarding==='photo')return <OnboardingShell theme={theme} step={4}><AmaraGuide theme={theme} image={require('@/assets/images/amara-photo-guide.png')} title="Add a friendly face" copy="A clear photo helps farms, customers, and support recognise you."/><Pressable disabled={busy} onPress={()=>void choosePhoto()} style={[styles.photoPicker,{backgroundColor:theme.surfaceAlt,borderColor:theme.border}]}>{photoUri?<Image source={{uri:photoUri}} style={styles.photoPreview}/>:<><UserRound size={68} color={theme.muted}/><View style={[styles.cameraBadge,{backgroundColor:theme.primary}]}><Camera size={20} color={theme.primaryText}/></View></>}</Pressable><Text style={[styles.onboardingTitle,{color:theme.text}]}>Make it yours</Text><Text style={[styles.onboardingCopy,{color:theme.muted}]}>Add a clear profile picture so farmers, customers, and support can recognise you.</Text>{error?<Text style={styles.error}>{error}</Text>:null}<Primary theme={theme} label={photoUri?'Continue to HarvestNearU':'Choose a profile picture'} busy={busy} onPress={photoUri?finish:()=>void choosePhoto()}/><Pressable disabled={busy} onPress={finish}><Text style={[styles.secondaryLink,{color:theme.muted}]}>Skip for now</Text></Pressable></OnboardingShell>;
-  if(user)return <Screen><Header/><View style={styles.content}><Pressable onPress={()=>router.push('/profile')} style={styles.profile}><View style={[styles.avatar,{backgroundColor:theme.surfaceAlt}]}>{user.avatarUrl?<Image source={{uri:absoluteUrl(user.avatarUrl)}} style={styles.avatarImage}/>:<UserRound size={30} color={theme.primary}/>}</View><View style={{flex:1}}><Text style={[styles.name,{color:theme.text}]}>{user.firstName} {user.lastName}</Text><Text style={[styles.accountRole,{color:theme.primary}]}>{user.role.replace(/^./,char=>char.toUpperCase())} account</Text></View></Pressable><View style={styles.grid}><Menu theme={theme} icon={<UserRound size={21} color={theme.primary}/>} title="My profile" onPress={()=>router.push('/profile')}/><Menu theme={theme} icon={<MapPin size={21} color={theme.primary}/>} title="Saved location" onPress={()=>router.push('/location')}/>{user.role==='consumer'?<Menu theme={theme} icon={<Store size={21} color={theme.primary}/>} title="Become a farmer" onPress={()=>router.push('/farm-new' as never)}/>:null}<Menu theme={theme} icon={<ShieldCheck size={21} color={theme.primary}/>} title="Privacy & security" onPress={()=>router.push('/privacy')}/><Menu theme={theme} icon={<Headphones size={21} color={theme.primary}/>} title="Help & feedback" onPress={()=>router.push('/support' as never)}/><Menu theme={theme} icon={<Truck size={21} color={theme.primary}/>} title="Delivery areas" onPress={()=>router.push('/delivery-areas' as never)}/><Menu theme={theme} icon={<RotateCcw size={21} color={theme.primary}/>} title="Returns & refunds" onPress={()=>router.push('/returns-refunds' as never)}/><View style={[styles.menu,{backgroundColor:theme.surface,borderColor:theme.border}]}><View style={[styles.menuIcon,{backgroundColor:theme.surfaceAlt}]}><Moon size={21} color={theme.primary}/></View><Text style={[styles.menuText,{color:theme.text}]}>Dark appearance</Text><Switch value={dark} onValueChange={setDark} trackColor={{false:theme.border,true:theme.primary}}/></View></View><Pressable onPress={()=>void signOut()} style={[styles.signOut,{backgroundColor:theme.surface,borderColor:theme.border}]}><UserRoundX size={19} color="#b64c3e"/><Text style={{color:'#b64c3e',fontWeight:'800'}}>Sign out of account</Text></Pressable></View></Screen>;
-  return <Screen>{onboarding==='signup'?<Progress theme={theme} step={2}/>:<Header/>}<View style={styles.content}>{onboarding==='signup'?<View style={styles.signupHeadingRow}><Pressable accessibilityLabel="Back to welcome" hitSlop={10} onPress={()=>setOnboarding('welcome')} style={styles.inlineBack}><ChevronLeft size={21} color={theme.text}/></Pressable><Text style={[styles.eyebrow,styles.signupEyebrow,{color:theme.primary}]}>JOIN HARVESTNEARU</Text></View>:<Text style={[styles.eyebrow,{color:theme.primary}]}>{mode==='signin'?'WELCOME BACK':'JOIN HARVESTNEARU'}</Text>}<Text style={[styles.title,{color:theme.text}]}>{mode==='signin'?'Sign in to HarvestNearU':'Create your account'}</Text><Text style={[styles.copy,{color:theme.muted}]}>{mode==='signin'?'Continue shopping fresh harvests or manage your farm.':'Choose how you want to use the marketplace.'}</Text><View style={[styles.form,{backgroundColor:theme.surface,borderColor:theme.border}]}>{(mode==='signin'||role==='consumer')?<GoogleButton theme={theme} dark={dark} busy={busy} onPress={()=>void continueWithGoogle()}/>:null}{mode==='signup'?<><View style={styles.roleRow}>{(['consumer','farmer'] as const).map(value=><Pressable key={value} onPress={()=>setRole(value)} style={[styles.roleButton,{backgroundColor:role===value?theme.surfaceAlt:theme.background,borderColor:role===value?theme.primary:theme.border}]}><Text style={{color:theme.text,fontWeight:'800'}}>{value==='consumer'?'Consumer':'Farmer'}</Text></Pressable>)}</View><View style={styles.nameRow}><Field theme={theme} label="First name" {...field('firstName')}/><Field theme={theme} label="Last name" {...field('lastName')}/></View><Field theme={theme} label="Phone number" keyboardType="phone-pad" {...field('phone')}/>{role==='farmer'?<><Field theme={theme} label="Farm name" {...field('farmName')}/><Field theme={theme} label="Farm address or area" {...field('farmLocation')}/></>:null}</>:null}<Field theme={theme} label={mode==='signin'?'Email or phone number':'Email address'} autoCapitalize="none" keyboardType="email-address" {...field(mode==='signin'?'identifier':'email')}/><Field theme={theme} label="Password" secureTextEntry {...field('password')}/>{mode==='signin'?<Pressable onPress={()=>router.push('/forgot-password' as never)} hitSlop={8}><Text style={[styles.forgot,{color:theme.primary}]}>Forgot password?</Text></Pressable>:<Field theme={theme} label="Confirm password" secureTextEntry {...field('confirmPassword')}/>}{error?<Text style={styles.error}>{error}</Text>:null}<Pressable disabled={busy} onPress={()=>void submit()} style={[styles.submit,{backgroundColor:theme.primary,opacity:busy?.7:1}]}>{busy?<ActivityIndicator color={theme.primaryText}/>:<><LogIn size={19} color={theme.primaryText}/><Text style={{color:theme.primaryText,fontWeight:'900'}}>{mode==='signin'?'Sign in securely':'Create account'}</Text></>}</Pressable><Pressable onPress={()=>{if(mode==='signin'){setMode('signup');setOnboarding('welcome')}else{setMode('signin');setOnboarding('none')}setError('');setForm({})}}><Text style={[styles.create,{color:theme.muted}]}>{mode==='signin'?'New to HarvestNearU? ':'Already have an account? '}<Text style={{color:theme.primary,fontWeight:'900'}}>{mode==='signin'?'Create an account':'Sign in'}</Text></Text></Pressable></View></View></Screen>
-}
-function WelcomeOnboarding({theme,dark,setDark,onStart,onSignIn}:{theme:any;dark:boolean;setDark:(value:boolean)=>void;onStart:()=>void;onSignIn:()=>void}) {
-  const {height,width}=useWindowDimensions();
-  const [translateX]=useState(()=>new Animated.Value(0));
-  const compact=height<720;
-  const landscape=width>height*1.15;
-  const fill={position:'absolute' as const,left:0,top:0,width,height};
-  const imageRatio=2/3;
-  const welcomeImageStyle=landscape
-    ? {position:'absolute' as const,top:0,right:0,width:height*imageRatio,height,zIndex:0}
-    : {position:'absolute' as const,top:0,left:Math.min(0,(width-(height*imageRatio))/2),width:Math.max(width,height*imageRatio),height:Math.max(height,width/imageRatio),zIndex:0};
-  const advance=()=>Animated.timing(translateX,{toValue:-width,duration:320,useNativeDriver:true}).start(onStart);
-  return <View style={{flex:1,backgroundColor:dark?'#08150e':theme.background}}><Animated.View style={{flex:1,backgroundColor:dark?'#08150e':theme.background,transform:[{translateX}]}}><SafeAreaView edges={['top','bottom']} style={{flex:1,backgroundColor:dark?'#08150e':theme.background}}>
-    <NativeImage source={require('@/assets/images/amara-welcome.png')} style={welcomeImageStyle} resizeMode="stretch"/>
-    <View pointerEvents="none" style={[fill,{zIndex:1,backgroundColor:dark?'rgba(3,15,9,.12)':'rgba(247,248,243,.03)'}]}/>
-    <LinearGradient pointerEvents="none" colors={dark?['rgba(4,18,10,0)','rgba(4,18,10,.12)','rgba(4,18,10,.68)','rgba(4,18,10,.96)']:['rgba(247,248,243,0)','rgba(247,248,243,0)','rgba(247,248,243,.48)','rgba(247,248,243,.94)']} locations={[0,.48,.72,1]} style={[fill,{zIndex:2}]}/>
-    <View style={{flex:1,zIndex:3,paddingHorizontal:24,paddingTop:compact?8:15,paddingBottom:compact?12:22}}>
-      <View style={{height:58,flexDirection:'row',alignItems:'center',gap:12}}>
-        <Image source={require('@/assets/images/harvestnearu-logo.png')} style={{width:compact?108:118,height:34}} contentFit="contain" contentPosition="left center"/>
-        <View style={{flex:1,flexDirection:'row',justifyContent:'flex-end',alignItems:'center',gap:6}}>{[1,2,3,4].map(value=><View key={value} style={{height:8,width:value===1?24:8,borderRadius:8,backgroundColor:value===1?'#75c18e':'rgba(255,255,255,.3)'}}/>)}</View>
-        <Text style={{color:dark?'#f2f5f3':theme.text,fontSize:11,fontWeight:'900'}}>1 of 4</Text>
-        <Pressable accessibilityLabel={dark?'Use light theme':'Use dark theme'} onPress={()=>setDark(!dark)} style={[styles.welcomeTheme,{backgroundColor:dark?'rgba(24,35,28,.84)':'rgba(255,255,255,.86)',borderColor:dark?'rgba(255,255,255,.24)':theme.border}]}>{dark?<Sun size={17} color="#f2c94c"/>:<Moon size={17} color={theme.primary}/>}</Pressable>
+export default function Account() {
+  const router = useRouter();
+  const {
+    theme,
+    user,
+    dark,
+    setDark,
+    signIn,
+    signOut,
+    signUp,
+    refreshSession,
+  } = useApp();
+  const params = useLocalSearchParams<{ onboarding?: string }>();
+  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [role, setRole] = useState<"consumer" | "farmer">("consumer");
+  const [form, setForm] = useState<Record<string, string>>({});
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [onboarding, setOnboarding] = useState<
+    "none" | "welcome" | "signup" | "verify" | "photo"
+  >(params.onboarding === "photo" ? "photo" : "none");
+  const [code, setCode] = useState("");
+  const [photoUri, setPhotoUri] = useState("");
+  const field = (name: string) => ({
+    value: form[name] || "",
+    onChangeText: (value: string) =>
+      setForm((current) => ({ ...current, [name]: value })),
+  });
+  async function submit() {
+    setBusy(true);
+    setError("");
+    try {
+      if (mode === "signin") {
+        await signIn(form.identifier || "", form.password || "");
+        setForm({});
+        router.replace("/");
+      } else {
+        let coordinates = { latitude: "", longitude: "" };
+        if (role === "farmer") {
+          const permission = await Location.requestForegroundPermissionsAsync();
+          if (permission.status !== "granted")
+            throw new Error(
+              "Location permission is required to register a farm.",
+            );
+          const location = await Location.getCurrentPositionAsync({
+            accuracy: Location.Accuracy.Balanced,
+          });
+          coordinates = {
+            latitude: String(location.coords.latitude),
+            longitude: String(location.coords.longitude),
+          };
+        }
+        setOnboarding("verify");
+        try {
+          await signUp({ ...form, ...coordinates, role });
+        } catch (reason) {
+          setOnboarding("signup");
+          throw reason;
+        }
+        try {
+          await api("/api/auth/verify-email", { method: "POST" });
+        } catch (reason) {
+          setError((reason as Error).message);
+        }
+      }
+    } catch (reason) {
+      setError((reason as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function verify() {
+    setBusy(true);
+    setError("");
+    try {
+      await api("/api/auth/verify-email", {
+        method: "PATCH",
+        body: JSON.stringify({ code }),
+      });
+      setOnboarding("photo");
+    } catch (reason) {
+      setError((reason as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function resend() {
+    setBusy(true);
+    setError("");
+    try {
+      await api("/api/auth/verify-email", { method: "POST" });
+    } catch (reason) {
+      setError((reason as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function continueWithGoogle() {
+    setBusy(true);
+    setError("");
+    try {
+      const result = await WebBrowser.openAuthSessionAsync(
+        `${API_URL}/api/auth/google?mobile=1`,
+        "harvestnearu://auth",
+      );
+      if (result.type !== "success" || !result.url)
+        throw new Error("Google sign-in was cancelled.");
+      const callback = new URL(result.url);
+      const oauthError = callback.searchParams.get("error");
+      const token = callback.searchParams.get("token");
+      if (oauthError) throw new Error(oauthError.replaceAll("_", " "));
+      if (!token) throw new Error("Google did not return a mobile session.");
+      const newAccount = callback.searchParams.get("newAccount") === "1";
+      await saveSessionToken(token);
+      await refreshSession();
+      setPhotoUri("");
+      setOnboarding(newAccount ? "photo" : "none");
+      router.replace(newAccount ? "/account?onboarding=photo" : "/");
+    } catch (reason) {
+      setError((reason as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function choosePhoto() {
+    setError("");
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.82,
+      base64: true,
+    });
+    if (result.canceled) return;
+    const asset = result.assets[0];
+    if (asset.fileSize && asset.fileSize > 3 * 1024 * 1024) {
+      setError("Choose a profile picture smaller than 3 MB.");
+      return;
+    }
+    if (!asset.base64) {
+      setError("The selected picture could not be read.");
+      return;
+    }
+    setPhotoUri(asset.uri);
+    setBusy(true);
+    try {
+      await api("/api/profile/avatar", {
+        method: "POST",
+        body: JSON.stringify({
+          imageBase64: asset.base64,
+          mimeType: asset.mimeType || "image/jpeg",
+          fileName: asset.fileName || "profile-picture.jpg",
+        }),
+      });
+      await refreshSession();
+    } catch (reason) {
+      setPhotoUri("");
+      setError((reason as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  function finish() {
+    setForm({});
+    setCode("");
+    setOnboarding("none");
+    router.replace("/");
+  }
+  if (onboarding === "welcome")
+    return (
+      <WelcomeOnboarding
+        theme={theme}
+        dark={dark}
+        setDark={setDark}
+        onStart={() => {
+          setMode("signup");
+          setOnboarding("signup");
+        }}
+        onSignIn={() => {
+          setMode("signin");
+          setForm({});
+          setError("");
+          setOnboarding("none");
+        }}
+      />
+    );
+  if (onboarding === "verify")
+    return (
+      <OnboardingShell theme={theme} step={3}>
+        <AmaraGuide
+          theme={theme}
+          image={require("@/assets/images/amara-email-guide.png")}
+          title="Check your inbox"
+          copy="I’ll stay with you while you enter the six-digit code."
+        />
+        <View style={[styles.stepIcon, { backgroundColor: theme.surfaceAlt }]}>
+          <MailCheck size={34} color={theme.primary} />
+        </View>
+        <Text style={[styles.onboardingTitle, { color: theme.text }]}>
+          Confirm your email
+        </Text>
+        <Text style={[styles.onboardingCopy, { color: theme.muted }]}>
+          We sent a 6-digit code to {form.email}. Enter it below to secure your
+          account.
+        </Text>
+        <TextInput
+          value={code}
+          onChangeText={(value) =>
+            setCode(value.replace(/\D/g, "").slice(0, 6))
+          }
+          keyboardType="number-pad"
+          maxLength={6}
+          autoFocus
+          style={[
+            styles.otp,
+            {
+              color: theme.text,
+              borderColor: theme.border,
+              backgroundColor: theme.surface,
+            },
+          ]}
+        />
+        {error ? <Text style={styles.error}>{error}</Text> : null}
+        <Primary
+          theme={theme}
+          label="Verify email"
+          busy={busy}
+          disabled={code.length !== 6}
+          onPress={() => void verify()}
+        />
+        <Pressable disabled={busy} onPress={() => void resend()}>
+          <Text style={[styles.secondaryLink, { color: theme.primary }]}>
+            Send a new code
+          </Text>
+        </Pressable>
+      </OnboardingShell>
+    );
+  if (onboarding === "photo")
+    return (
+      <OnboardingShell theme={theme} step={4}>
+        <AmaraGuide
+          theme={theme}
+          image={require("@/assets/images/amara-photo-guide.png")}
+          title="Add a friendly face"
+          copy="A clear photo helps farms, customers, and support recognise you."
+        />
+        <Pressable
+          disabled={busy}
+          onPress={() => void choosePhoto()}
+          style={[
+            styles.photoPicker,
+            { backgroundColor: theme.surfaceAlt, borderColor: theme.border },
+          ]}
+        >
+          {photoUri ? (
+            <Image source={{ uri: photoUri }} style={styles.photoPreview} />
+          ) : (
+            <>
+              <UserRound size={68} color={theme.muted} />
+              <View
+                style={[styles.cameraBadge, { backgroundColor: theme.primary }]}
+              >
+                <Camera size={20} color={theme.primaryText} />
+              </View>
+            </>
+          )}
+        </Pressable>
+        <Text style={[styles.onboardingTitle, { color: theme.text }]}>
+          Make it yours
+        </Text>
+        <Text style={[styles.onboardingCopy, { color: theme.muted }]}>
+          Add a clear profile picture so farmers, customers, and support can
+          recognise you.
+        </Text>
+        {error ? <Text style={styles.error}>{error}</Text> : null}
+        <Primary
+          theme={theme}
+          label={
+            photoUri ? "Continue to HarvestNearU" : "Choose a profile picture"
+          }
+          busy={busy}
+          onPress={photoUri ? finish : () => void choosePhoto()}
+        />
+        <Pressable disabled={busy} onPress={finish}>
+          <Text style={[styles.secondaryLink, { color: theme.muted }]}>
+            Skip for now
+          </Text>
+        </Pressable>
+      </OnboardingShell>
+    );
+  if (user)
+    return (
+      <Screen>
+        <Header />
+        <View style={styles.content}>
+          <Pressable
+            onPress={() => router.push("/profile")}
+            style={styles.profile}
+          >
+            <View
+              style={[styles.avatar, { backgroundColor: theme.surfaceAlt }]}
+            >
+              {user.avatarUrl ? (
+                <Image
+                  source={{ uri: absoluteUrl(user.avatarUrl) }}
+                  style={styles.avatarImage}
+                />
+              ) : (
+                <UserRound size={30} color={theme.primary} />
+              )}
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.name, { color: theme.text }]}>
+                {user.firstName} {user.lastName}
+              </Text>
+              <Text style={[styles.accountRole, { color: theme.primary }]}>
+                {user.role.replace(/^./, (char) => char.toUpperCase())} account
+              </Text>
+            </View>
+          </Pressable>
+          <View style={styles.grid}>
+            <Menu
+              theme={theme}
+              icon={<UserRound size={21} color={theme.primary} />}
+              title="My profile"
+              onPress={() => router.push("/profile")}
+            />
+            <Menu
+              theme={theme}
+              icon={<Heart size={21} color={theme.primary} />}
+              title="Saved harvests"
+              onPress={() => router.push("/saved" as never)}
+            />
+            <Menu
+              theme={theme}
+              icon={<MapPin size={21} color={theme.primary} />}
+              title="Saved location"
+              onPress={() => router.push("/location")}
+            />
+            {user.role === "consumer" ? (
+              <Menu
+                theme={theme}
+                icon={<Store size={21} color={theme.primary} />}
+                title="Become a farmer"
+                onPress={() => router.push("/farm-new" as never)}
+              />
+            ) : null}
+            <Menu
+              theme={theme}
+              icon={<ShieldCheck size={21} color={theme.primary} />}
+              title="Privacy & security"
+              onPress={() => router.push("/privacy")}
+            />
+            <Menu
+              theme={theme}
+              icon={<Headphones size={21} color={theme.primary} />}
+              title="Help & feedback"
+              onPress={() => router.push("/support" as never)}
+            />
+            <Menu
+              theme={theme}
+              icon={<Truck size={21} color={theme.primary} />}
+              title="Delivery areas"
+              onPress={() => router.push("/delivery-areas" as never)}
+            />
+            <Menu
+              theme={theme}
+              icon={<RotateCcw size={21} color={theme.primary} />}
+              title="Returns & refunds"
+              onPress={() => router.push("/returns-refunds" as never)}
+            />
+            <View
+              style={[
+                styles.menu,
+                { backgroundColor: theme.surface, borderColor: theme.border },
+              ]}
+            >
+              <View
+                style={[styles.menuIcon, { backgroundColor: theme.surfaceAlt }]}
+              >
+                <Moon size={21} color={theme.primary} />
+              </View>
+              <Text style={[styles.menuText, { color: theme.text }]}>
+                Dark appearance
+              </Text>
+              <Switch
+                value={dark}
+                onValueChange={setDark}
+                trackColor={{ false: theme.border, true: theme.primary }}
+              />
+            </View>
+          </View>
+          <Pressable
+            onPress={() => void signOut()}
+            style={[
+              styles.signOut,
+              { backgroundColor: theme.surface, borderColor: theme.border },
+            ]}
+          >
+            <UserRoundX size={19} color="#b64c3e" />
+            <Text style={{ color: "#b64c3e", fontWeight: "800" }}>
+              Sign out of account
+            </Text>
+          </Pressable>
+        </View>
+      </Screen>
+    );
+  return (
+    <Screen>
+      {onboarding === "signup" ? (
+        <Progress theme={theme} step={2} />
+      ) : (
+        <Header />
+      )}
+      <View style={styles.content}>
+        {onboarding === "signup" ? (
+          <View style={styles.signupHeadingRow}>
+            <Pressable
+              accessibilityLabel="Back to welcome"
+              hitSlop={10}
+              onPress={() => setOnboarding("welcome")}
+              style={styles.inlineBack}
+            >
+              <ChevronLeft size={21} color={theme.text} />
+            </Pressable>
+            <Text
+              style={[
+                styles.eyebrow,
+                styles.signupEyebrow,
+                { color: theme.primary },
+              ]}
+            >
+              JOIN HARVESTNEARU
+            </Text>
+          </View>
+        ) : (
+          <Text style={[styles.eyebrow, { color: theme.primary }]}>
+            {mode === "signin" ? "WELCOME BACK" : "JOIN HARVESTNEARU"}
+          </Text>
+        )}
+        <Text style={[styles.title, { color: theme.text }]}>
+          {mode === "signin"
+            ? "Sign in to HarvestNearU"
+            : "Create your account"}
+        </Text>
+        <Text style={[styles.copy, { color: theme.muted }]}>
+          {mode === "signin"
+            ? "Continue shopping fresh harvests or manage your farm."
+            : "Choose how you want to use the marketplace."}
+        </Text>
+        <View
+          style={[
+            styles.form,
+            { backgroundColor: theme.surface, borderColor: theme.border },
+          ]}
+        >
+          {mode === "signin" || role === "consumer" ? (
+            <GoogleButton
+              theme={theme}
+              dark={dark}
+              busy={busy}
+              onPress={() => void continueWithGoogle()}
+            />
+          ) : null}
+          {mode === "signup" ? (
+            <>
+              <View style={styles.roleRow}>
+                {(["consumer", "farmer"] as const).map((value) => (
+                  <Pressable
+                    key={value}
+                    onPress={() => setRole(value)}
+                    style={[
+                      styles.roleButton,
+                      {
+                        backgroundColor:
+                          role === value ? theme.surfaceAlt : theme.background,
+                        borderColor:
+                          role === value ? theme.primary : theme.border,
+                      },
+                    ]}
+                  >
+                    <Text style={{ color: theme.text, fontWeight: "800" }}>
+                      {value === "consumer" ? "Consumer" : "Farmer"}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+              <View style={styles.nameRow}>
+                <Field
+                  theme={theme}
+                  label="First name"
+                  {...field("firstName")}
+                />
+                <Field theme={theme} label="Last name" {...field("lastName")} />
+              </View>
+              <Field
+                theme={theme}
+                label="Phone number"
+                keyboardType="phone-pad"
+                {...field("phone")}
+              />
+              {role === "farmer" ? (
+                <>
+                  <Field
+                    theme={theme}
+                    label="Farm name"
+                    {...field("farmName")}
+                  />
+                  <Field
+                    theme={theme}
+                    label="Farm address or area"
+                    {...field("farmLocation")}
+                  />
+                </>
+              ) : null}
+            </>
+          ) : null}
+          <Field
+            theme={theme}
+            label={
+              mode === "signin" ? "Email or phone number" : "Email address"
+            }
+            autoCapitalize="none"
+            keyboardType="email-address"
+            {...field(mode === "signin" ? "identifier" : "email")}
+          />
+          <Field
+            theme={theme}
+            label="Password"
+            secureTextEntry
+            {...field("password")}
+          />
+          {mode === "signin" ? (
+            <Pressable
+              onPress={() => router.push("/forgot-password" as never)}
+              hitSlop={8}
+            >
+              <Text style={[styles.forgot, { color: theme.primary }]}>
+                Forgot password?
+              </Text>
+            </Pressable>
+          ) : (
+            <Field
+              theme={theme}
+              label="Confirm password"
+              secureTextEntry
+              {...field("confirmPassword")}
+            />
+          )}
+          {error ? <Text style={styles.error}>{error}</Text> : null}
+          <Pressable
+            disabled={busy}
+            onPress={() => void submit()}
+            style={[
+              styles.submit,
+              { backgroundColor: theme.primary, opacity: busy ? 0.7 : 1 },
+            ]}
+          >
+            {busy ? (
+              <ActivityIndicator color={theme.primaryText} />
+            ) : (
+              <>
+                <LogIn size={19} color={theme.primaryText} />
+                <Text style={{ color: theme.primaryText, fontWeight: "900" }}>
+                  {mode === "signin" ? "Sign in securely" : "Create account"}
+                </Text>
+              </>
+            )}
+          </Pressable>
+          <Pressable
+            onPress={() => {
+              if (mode === "signin") {
+                setMode("signup");
+                setOnboarding("welcome");
+              } else {
+                setMode("signin");
+                setOnboarding("none");
+              }
+              setError("");
+              setForm({});
+            }}
+          >
+            <Text style={[styles.create, { color: theme.muted }]}>
+              {mode === "signin"
+                ? "New to HarvestNearU? "
+                : "Already have an account? "}
+              <Text style={{ color: theme.primary, fontWeight: "900" }}>
+                {mode === "signin" ? "Create an account" : "Sign in"}
+              </Text>
+            </Text>
+          </Pressable>
+        </View>
       </View>
-      <View style={{flex:1,justifyContent:'flex-end',paddingBottom:compact?2:10,maxWidth:landscape?460:undefined}}>
-        <View style={[styles.welcomeAmaraBadge,{backgroundColor:dark?'rgba(4,18,10,.72)':theme.primary}]}><Text style={{color:dark?'#f2c94c':theme.primaryText,fontSize:11,fontWeight:'900',letterSpacing:1.5}}>MEET AMARA</Text></View>
-        <Text style={{color:dark?'#fff':theme.text,fontFamily:'Georgia_Bold',fontSize:compact?31:36,lineHeight:compact?35:40,marginTop:9,maxWidth:430}}>Welcome to HarvestNearU</Text>
-        <Text style={{color:dark?'#e1e9e3':'#174c32',fontSize:compact?14:15,lineHeight:compact?20:23,marginTop:12,maxWidth:440}}>Discover today&apos;s harvest from trusted farms nearby, order practical quantities, and track every item to handover.</Text>
-        <Pressable onPress={advance} style={{height:compact?50:54,marginTop:compact?18:24,borderRadius:14,alignItems:'center',justifyContent:'center',backgroundColor:dark?'#72b889':'#176b45'}}><Text style={{color:dark?'#102217':'#fff',fontSize:15,fontWeight:'900'}}>Get started</Text></Pressable>
-        <Pressable onPress={onSignIn} style={{minHeight:46,alignItems:'center',justifyContent:'center'}}><Text style={{color:dark?'#8fd1a3':theme.primary,fontSize:14,fontWeight:'900'}}>I already have an account</Text></Pressable>
+    </Screen>
+  );
+}
+function WelcomeOnboarding({
+  theme,
+  dark,
+  setDark,
+  onStart,
+  onSignIn,
+}: {
+  theme: any;
+  dark: boolean;
+  setDark: (value: boolean) => void;
+  onStart: () => void;
+  onSignIn: () => void;
+}) {
+  const { height, width } = useWindowDimensions();
+  const [translateX] = useState(() => new Animated.Value(0));
+  const compact = height < 720;
+  const landscape = width > height * 1.15;
+  const fill = {
+    position: "absolute" as const,
+    left: 0,
+    top: 0,
+    width,
+    height,
+  };
+  const imageRatio = 2 / 3;
+  const welcomeImageStyle = landscape
+    ? {
+        position: "absolute" as const,
+        top: 0,
+        right: 0,
+        width: height * imageRatio,
+        height,
+        zIndex: 0,
+      }
+    : {
+        position: "absolute" as const,
+        top: 0,
+        left: Math.min(0, (width - height * imageRatio) / 2),
+        width: Math.max(width, height * imageRatio),
+        height: Math.max(height, width / imageRatio),
+        zIndex: 0,
+      };
+  const advance = () =>
+    Animated.timing(translateX, {
+      toValue: -width,
+      duration: 320,
+      useNativeDriver: true,
+    }).start(onStart);
+  return (
+    <View
+      style={{ flex: 1, backgroundColor: dark ? "#08150e" : theme.background }}
+    >
+      <Animated.View
+        style={{
+          flex: 1,
+          backgroundColor: dark ? "#08150e" : theme.background,
+          transform: [{ translateX }],
+        }}
+      >
+        <SafeAreaView
+          edges={["top", "bottom"]}
+          style={{
+            flex: 1,
+            backgroundColor: dark ? "#08150e" : theme.background,
+          }}
+        >
+          <NativeImage
+            source={require("@/assets/images/amara-welcome.png")}
+            style={welcomeImageStyle}
+            resizeMode="stretch"
+          />
+          <View
+            pointerEvents="none"
+            style={[
+              fill,
+              {
+                zIndex: 1,
+                backgroundColor: dark
+                  ? "rgba(3,15,9,.12)"
+                  : "rgba(247,248,243,.03)",
+              },
+            ]}
+          />
+          <LinearGradient
+            pointerEvents="none"
+            colors={
+              dark
+                ? [
+                    "rgba(4,18,10,0)",
+                    "rgba(4,18,10,.12)",
+                    "rgba(4,18,10,.68)",
+                    "rgba(4,18,10,.96)",
+                  ]
+                : [
+                    "rgba(247,248,243,0)",
+                    "rgba(247,248,243,0)",
+                    "rgba(247,248,243,.48)",
+                    "rgba(247,248,243,.94)",
+                  ]
+            }
+            locations={[0, 0.48, 0.72, 1]}
+            style={[fill, { zIndex: 2 }]}
+          />
+          <View
+            style={{
+              flex: 1,
+              zIndex: 3,
+              paddingHorizontal: 24,
+              paddingTop: compact ? 8 : 15,
+              paddingBottom: compact ? 12 : 22,
+            }}
+          >
+            <View
+              style={{
+                height: 58,
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 12,
+              }}
+            >
+              <Image
+                source={require("@/assets/images/harvestnearu-logo.png")}
+                style={{ width: compact ? 108 : 118, height: 34 }}
+                contentFit="contain"
+                contentPosition="left center"
+              />
+              <View
+                style={{
+                  flex: 1,
+                  flexDirection: "row",
+                  justifyContent: "flex-end",
+                  alignItems: "center",
+                  gap: 6,
+                }}
+              >
+                {[1, 2, 3, 4].map((value) => (
+                  <View
+                    key={value}
+                    style={{
+                      height: 8,
+                      width: value === 1 ? 24 : 8,
+                      borderRadius: 8,
+                      backgroundColor:
+                        value === 1 ? "#75c18e" : "rgba(255,255,255,.3)",
+                    }}
+                  />
+                ))}
+              </View>
+              <Text
+                style={{
+                  color: dark ? "#f2f5f3" : theme.text,
+                  fontSize: 11,
+                  fontWeight: "900",
+                }}
+              >
+                1 of 4
+              </Text>
+              <Pressable
+                accessibilityLabel={dark ? "Use light theme" : "Use dark theme"}
+                onPress={() => setDark(!dark)}
+                style={[
+                  styles.welcomeTheme,
+                  {
+                    backgroundColor: dark
+                      ? "rgba(24,35,28,.84)"
+                      : "rgba(255,255,255,.86)",
+                    borderColor: dark ? "rgba(255,255,255,.24)" : theme.border,
+                  },
+                ]}
+              >
+                {dark ? (
+                  <Sun size={17} color="#f2c94c" />
+                ) : (
+                  <Moon size={17} color={theme.primary} />
+                )}
+              </Pressable>
+            </View>
+            <View
+              style={{
+                flex: 1,
+                justifyContent: "flex-end",
+                paddingBottom: compact ? 2 : 10,
+                maxWidth: landscape ? 460 : undefined,
+              }}
+            >
+              <View
+                style={[
+                  styles.welcomeAmaraBadge,
+                  {
+                    backgroundColor: dark ? "rgba(4,18,10,.72)" : theme.primary,
+                  },
+                ]}
+              >
+                <Text
+                  style={{
+                    color: dark ? "#f2c94c" : theme.primaryText,
+                    fontSize: 11,
+                    fontWeight: "900",
+                    letterSpacing: 1.5,
+                  }}
+                >
+                  MEET AMARA
+                </Text>
+              </View>
+              <Text
+                style={{
+                  color: dark ? "#fff" : theme.text,
+                  fontFamily: "Georgia_Bold",
+                  fontSize: compact ? 31 : 36,
+                  lineHeight: compact ? 35 : 40,
+                  marginTop: 9,
+                  maxWidth: 430,
+                }}
+              >
+                Welcome to HarvestNearU
+              </Text>
+              <Text
+                style={{
+                  color: dark ? "#e1e9e3" : "#174c32",
+                  fontSize: compact ? 14 : 15,
+                  lineHeight: compact ? 20 : 23,
+                  marginTop: 12,
+                  maxWidth: 440,
+                }}
+              >
+                Discover today&apos;s harvest from trusted farms nearby, order
+                practical quantities, and track every item to handover.
+              </Text>
+              <Pressable
+                onPress={advance}
+                style={{
+                  height: compact ? 50 : 54,
+                  marginTop: compact ? 18 : 24,
+                  borderRadius: 14,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  backgroundColor: dark ? "#72b889" : "#176b45",
+                }}
+              >
+                <Text
+                  style={{
+                    color: dark ? "#102217" : "#fff",
+                    fontSize: 15,
+                    fontWeight: "900",
+                  }}
+                >
+                  Get started
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={onSignIn}
+                style={{
+                  minHeight: 46,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Text
+                  style={{
+                    color: dark ? "#8fd1a3" : theme.primary,
+                    fontSize: 14,
+                    fontWeight: "900",
+                  }}
+                >
+                  I already have an account
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        </SafeAreaView>
+      </Animated.View>
+    </View>
+  );
+}
+function OnboardingShell({
+  theme,
+  step,
+  children,
+}: {
+  theme: any;
+  step: number;
+  children: React.ReactNode;
+}) {
+  const { width } = useWindowDimensions();
+  const [translateX] = useState(() => new Animated.Value(width));
+  useEffect(() => {
+    translateX.stopAnimation();
+    translateX.setValue(Math.min(width * 0.72, 360));
+    Animated.spring(translateX, {
+      toValue: 0,
+      damping: 24,
+      stiffness: 180,
+      mass: 0.86,
+      useNativeDriver: true,
+    }).start();
+  }, [step, translateX, width]);
+  return (
+    <Screen>
+      <Progress theme={theme} step={step} />
+      <Animated.View
+        style={[styles.onboarding, { transform: [{ translateX }] }]}
+      >
+        {children}
+      </Animated.View>
+    </Screen>
+  );
+}
+function Progress({ theme, step }: { theme: any; step: number }) {
+  return (
+    <>
+      <View style={styles.progress}>
+        <Image
+          source={require("@/assets/images/harvestnearu-logo.png")}
+          style={styles.progressLogo}
+          contentFit="contain"
+        />
+        <View style={styles.progressSteps}>
+          {[1, 2, 3, 4].map((value) => (
+            <View
+              key={value}
+              style={[
+                styles.progressDot,
+                {
+                  backgroundColor: value <= step ? theme.primary : theme.border,
+                  width: value === step ? 24 : 8,
+                },
+              ]}
+            />
+          ))}
+        </View>
+        <Text style={[styles.progressCount, { color: theme.muted }]}>
+          {step} of 4
+        </Text>
+      </View>
+      {step === 2 ? (
+        <View style={guideStyles.stepTwo}>
+          <AmaraGuide
+            theme={theme}
+            image={require("@/assets/images/amara-account-guide.png")}
+            title="Let’s set things up"
+            copy="Choose your account type and I’ll guide you through each detail."
+          />
+        </View>
+      ) : null}
+    </>
+  );
+}
+function AmaraGuide({
+  theme,
+  image,
+  title,
+  copy,
+}: {
+  theme: any;
+  image: any;
+  title: string;
+  copy: string;
+}) {
+  return (
+    <View
+      style={[
+        guideStyles.card,
+        { backgroundColor: theme.surface, borderColor: theme.border },
+      ]}
+    >
+      <Image
+        source={image}
+        style={guideStyles.image}
+        contentFit="cover"
+        contentPosition={{ left: "50%", top: "20%" }}
+      />
+      <View style={guideStyles.copy}>
+        <Text style={[guideStyles.label, { color: theme.primary }]}>
+          AMARA’S GUIDE
+        </Text>
+        <Text style={[guideStyles.title, { color: theme.text }]}>{title}</Text>
+        <Text style={[guideStyles.text, { color: theme.muted }]}>{copy}</Text>
       </View>
     </View>
-  </SafeAreaView></Animated.View></View>
+  );
 }
-function OnboardingShell({theme,step,children}:{theme:any;step:number;children:React.ReactNode}){const {width}=useWindowDimensions();const [translateX]=useState(()=>new Animated.Value(width));useEffect(()=>{translateX.stopAnimation();translateX.setValue(Math.min(width*.72,360));Animated.spring(translateX,{toValue:0,damping:24,stiffness:180,mass:.86,useNativeDriver:true}).start()},[step,translateX,width]);return <Screen><Progress theme={theme} step={step}/><Animated.View style={[styles.onboarding,{transform:[{translateX}]}]}>{children}</Animated.View></Screen>}
-function Progress({theme,step}:{theme:any;step:number}){return <><View style={styles.progress}><Image source={require('@/assets/images/harvestnearu-logo.png')} style={styles.progressLogo} contentFit="contain"/><View style={styles.progressSteps}>{[1,2,3,4].map(value=><View key={value} style={[styles.progressDot,{backgroundColor:value<=step?theme.primary:theme.border,width:value===step?24:8}]}/>)}</View><Text style={[styles.progressCount,{color:theme.muted}]}>{step} of 4</Text></View>{step===2?<View style={guideStyles.stepTwo}><AmaraGuide theme={theme} image={require('@/assets/images/amara-account-guide.png')} title="Let’s set things up" copy="Choose your account type and I’ll guide you through each detail."/></View>:null}</>}
-function AmaraGuide({theme,image,title,copy}:{theme:any;image:any;title:string;copy:string}){return <View style={[guideStyles.card,{backgroundColor:theme.surface,borderColor:theme.border}]}><Image source={image} style={guideStyles.image} contentFit="cover" contentPosition={{left:'50%',top:'20%'}}/><View style={guideStyles.copy}><Text style={[guideStyles.label,{color:theme.primary}]}>AMARA’S GUIDE</Text><Text style={[guideStyles.title,{color:theme.text}]}>{title}</Text><Text style={[guideStyles.text,{color:theme.muted}]}>{copy}</Text></View></View>}
-function Primary({theme,label,onPress,busy=false,disabled=false}:{theme:any;label:string;onPress:()=>void;busy?:boolean;disabled?:boolean}){return <Pressable disabled={busy||disabled} onPress={onPress} style={[styles.onboardingButton,{backgroundColor:theme.primary,opacity:disabled?.45:1}]}>{busy?<ActivityIndicator color={theme.primaryText}/>:<Text style={{color:theme.primaryText,fontWeight:'900',fontSize:15}}>{label}</Text>}</Pressable>}
-function ChevronLeft({color}:{size?:number;color?:string}){return <ChevronLeftIcon size={17} strokeWidth={2.8} color={color}/>}
-function GoogleButton({theme,dark,busy,onPress}:{theme:any;dark:boolean;busy:boolean;onPress:()=>void}){return <><Pressable disabled={busy} onPress={onPress} style={[styles.googleButton,{borderColor:dark?'#8e918f':'#747775',backgroundColor:dark?'#131314':'#fff'}]}><Image source={require('@/assets/images/google-g.png')} style={styles.googleLogo} contentFit="contain"/><Text style={[styles.googleText,{color:dark?'#e3e3e3':'#1f1f1f'}]}>Continue with Google</Text></Pressable><View style={{marginVertical:16,flexDirection:'row',alignItems:'center',gap:10}}><View style={{height:1,flex:1,backgroundColor:theme.border}}/><Text style={{color:theme.muted,fontSize:11}}>or use email</Text><View style={{height:1,flex:1,backgroundColor:theme.border}}/></View></>}
-function Field({theme,label,secureTextEntry,...props}:{theme:any;label:string;secureTextEntry?:boolean;[key:string]:any}){const [visible,setVisible]=useState(false);return <View style={{flex:1}}><Text style={[styles.label,{color:theme.text}]}>{label}</Text><View><TextInput {...props} secureTextEntry={Boolean(secureTextEntry&&!visible)} style={[styles.input,secureTextEntry&&styles.passwordInput,{color:theme.text,borderColor:theme.border,backgroundColor:theme.background}]}/>{secureTextEntry?<Pressable accessibilityLabel={visible?'Hide password':'Show password'} hitSlop={10} onPress={()=>setVisible(value=>!value)} style={styles.eye}>{visible?<EyeOff size={19} color={theme.muted}/>:<Eye size={19} color={theme.muted}/>}</Pressable>:null}</View></View>}
-function Menu({theme,icon,title,onPress}:{theme:any;icon:React.ReactNode;title:string;onPress:()=>void}){return <Pressable onPress={onPress} style={({pressed})=>[styles.menu,{backgroundColor:theme.surface,borderColor:theme.border,opacity:pressed?.72:1}]}><View style={[styles.menuIcon,{backgroundColor:theme.surfaceAlt}]}>{icon}</View><Text style={[styles.menuText,{color:theme.text}]}>{title}</Text></Pressable>}
-const guideStyles=StyleSheet.create({stepTwo:{height:134,paddingHorizontal:20,alignItems:'center'},card:{width:'100%',maxWidth:430,height:112,borderWidth:1,borderRadius:18,flexDirection:'row',overflow:'hidden',marginBottom:22},image:{width:112,height:112,backgroundColor:'#08150e'},copy:{flex:1,paddingHorizontal:15,paddingVertical:13,justifyContent:'center'},label:{fontSize:10,fontWeight:'900',letterSpacing:1.1},title:{fontFamily:'Georgia_Bold',fontSize:18,marginTop:3},text:{fontSize:12,lineHeight:17,marginTop:4}})
-const styles=StyleSheet.create({content:{padding:20},profile:{paddingVertical:18,flexDirection:'row',alignItems:'center',gap:14},avatar:{width:64,height:64,borderRadius:20,alignItems:'center',justifyContent:'center',overflow:'hidden'},avatarImage:{width:'100%',height:'100%'},name:{fontFamily:'Georgia_Regular',fontSize:25},accountRole:{fontSize:12,fontWeight:'800',marginTop:3},grid:{marginTop:15,flexDirection:'row',flexWrap:'wrap',gap:10},menu:{width:'48%',flexGrow:1,minHeight:124,padding:14,borderWidth:1,borderRadius:16,justifyContent:'space-between'},menuIcon:{width:42,height:42,borderRadius:12,alignItems:'center',justifyContent:'center'},menuText:{fontSize:13,fontWeight:'800',lineHeight:18},signOut:{height:52,marginTop:18,borderWidth:1,borderRadius:12,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:8},eyebrow:{fontSize:11,fontWeight:'900',letterSpacing:1.2,marginTop:12},signupHeadingRow:{minHeight:34,marginTop:8,flexDirection:'row',alignItems:'center',gap:8},signupEyebrow:{marginTop:0},title:{fontFamily:'Georgia_Regular',fontSize:35,marginTop:8},copy:{fontSize:14,lineHeight:21,marginTop:8},form:{marginTop:24,padding:18,borderWidth:1,borderRadius:17},googleButton:{height:50,borderWidth:1,borderRadius:11,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:10},googleLogo:{width:18,height:18},googleText:{fontSize:14,fontWeight:'600'},label:{fontSize:12,fontWeight:'800',marginBottom:7},input:{height:49,borderWidth:1,borderRadius:11,paddingHorizontal:13,fontSize:15,marginBottom:16},passwordInput:{paddingRight:48},eye:{position:'absolute',right:14,top:14},forgot:{fontSize:13,fontWeight:'800',textAlign:'right',marginTop:-7,marginBottom:17},error:{color:'#ad4437',backgroundColor:'#fbece8',padding:11,borderRadius:8,marginBottom:14},submit:{height:50,borderRadius:11,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:8},create:{textAlign:'center',fontSize:13,marginTop:18},roleRow:{flexDirection:'row',gap:9,marginBottom:16},roleButton:{flex:1,height:48,borderWidth:1,borderRadius:11,alignItems:'center',justifyContent:'center'},nameRow:{flexDirection:'row',gap:10},progress:{height:76,paddingHorizontal:20,flexDirection:'row',alignItems:'center',gap:14},progressLogo:{width:126,height:36},progressSteps:{flex:1,flexDirection:'row',justifyContent:'center',alignItems:'center',gap:6},progressDot:{height:8,borderRadius:8},progressCount:{fontSize:11,fontWeight:'800'},welcomeTheme:{width:34,height:34,borderWidth:1,borderRadius:11,alignItems:'center',justifyContent:'center'},welcomeAmaraBadge:{alignSelf:'flex-start',paddingHorizontal:9,paddingVertical:5,borderRadius:7},onboarding:{padding:24,paddingTop:26,alignItems:'center'},welcomeArt:{width:'100%',height:300,borderRadius:24,overflow:'hidden',marginBottom:24,position:'relative'},welcomeImage:{width:'100%',height:'100%'},welcomeScrim:{position:'absolute',left:0,right:0,bottom:0,height:100,backgroundColor:'rgba(9,31,20,.72)'},welcomeLabel:{position:'absolute',left:18,right:18,bottom:15},welcomeMini:{color:'#f3c94d',fontSize:10,fontWeight:'900',letterSpacing:1.2},welcomeLabelCopy:{color:'#fff',fontSize:16,fontWeight:'800',marginTop:3},onboardingTitle:{fontFamily:'Georgia_Bold',fontSize:34,textAlign:'center',marginTop:10},onboardingCopy:{fontSize:15,lineHeight:23,textAlign:'center',maxWidth:420,marginTop:12,marginBottom:24},onboardingButton:{width:'100%',maxWidth:430,height:54,borderRadius:14,alignItems:'center',justifyContent:'center',marginTop:10},secondaryLink:{fontSize:14,fontWeight:'800',textAlign:'center',padding:18},stepIcon:{width:78,height:78,borderRadius:24,alignItems:'center',justifyContent:'center'},otp:{width:'100%',maxWidth:430,height:66,borderWidth:1,borderRadius:14,textAlign:'center',fontSize:28,fontWeight:'800',letterSpacing:12,marginBottom:18},photoPicker:{width:152,height:152,borderRadius:48,borderWidth:1,alignItems:'center',justifyContent:'center',overflow:'hidden'},photoPreview:{width:'100%',height:'100%'},cameraBadge:{position:'absolute',right:8,bottom:8,width:42,height:42,borderRadius:14,alignItems:'center',justifyContent:'center'},inlineBack:{width:26,height:30,alignItems:'center',justifyContent:'center'}});
+function Primary({
+  theme,
+  label,
+  onPress,
+  busy = false,
+  disabled = false,
+}: {
+  theme: any;
+  label: string;
+  onPress: () => void;
+  busy?: boolean;
+  disabled?: boolean;
+}) {
+  return (
+    <Pressable
+      disabled={busy || disabled}
+      onPress={onPress}
+      style={[
+        styles.onboardingButton,
+        { backgroundColor: theme.primary, opacity: disabled ? 0.45 : 1 },
+      ]}
+    >
+      {busy ? (
+        <ActivityIndicator color={theme.primaryText} />
+      ) : (
+        <Text
+          style={{ color: theme.primaryText, fontWeight: "900", fontSize: 15 }}
+        >
+          {label}
+        </Text>
+      )}
+    </Pressable>
+  );
+}
+function ChevronLeft({ color }: { size?: number; color?: string }) {
+  return <ChevronLeftIcon size={17} strokeWidth={2.8} color={color} />;
+}
+function GoogleButton({
+  theme,
+  dark,
+  busy,
+  onPress,
+}: {
+  theme: any;
+  dark: boolean;
+  busy: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <>
+      <Pressable
+        disabled={busy}
+        onPress={onPress}
+        style={[
+          styles.googleButton,
+          {
+            borderColor: dark ? "#8e918f" : "#747775",
+            backgroundColor: dark ? "#131314" : "#fff",
+          },
+        ]}
+      >
+        <Image
+          source={require("@/assets/images/google-g.png")}
+          style={styles.googleLogo}
+          contentFit="contain"
+        />
+        <Text
+          style={[styles.googleText, { color: dark ? "#e3e3e3" : "#1f1f1f" }]}
+        >
+          Continue with Google
+        </Text>
+      </Pressable>
+      <View
+        style={{
+          marginVertical: 16,
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 10,
+        }}
+      >
+        <View style={{ height: 1, flex: 1, backgroundColor: theme.border }} />
+        <Text style={{ color: theme.muted, fontSize: 11 }}>or use email</Text>
+        <View style={{ height: 1, flex: 1, backgroundColor: theme.border }} />
+      </View>
+    </>
+  );
+}
+function Field({
+  theme,
+  label,
+  secureTextEntry,
+  ...props
+}: {
+  theme: any;
+  label: string;
+  secureTextEntry?: boolean;
+  [key: string]: any;
+}) {
+  const [visible, setVisible] = useState(false);
+  return (
+    <View style={{ flex: 1 }}>
+      <Text style={[styles.label, { color: theme.text }]}>{label}</Text>
+      <View>
+        <TextInput
+          {...props}
+          secureTextEntry={Boolean(secureTextEntry && !visible)}
+          style={[
+            styles.input,
+            secureTextEntry && styles.passwordInput,
+            {
+              color: theme.text,
+              borderColor: theme.border,
+              backgroundColor: theme.background,
+            },
+          ]}
+        />
+        {secureTextEntry ? (
+          <Pressable
+            accessibilityLabel={visible ? "Hide password" : "Show password"}
+            hitSlop={10}
+            onPress={() => setVisible((value) => !value)}
+            style={styles.eye}
+          >
+            {visible ? (
+              <EyeOff size={19} color={theme.muted} />
+            ) : (
+              <Eye size={19} color={theme.muted} />
+            )}
+          </Pressable>
+        ) : null}
+      </View>
+    </View>
+  );
+}
+function Menu({
+  theme,
+  icon,
+  title,
+  onPress,
+}: {
+  theme: any;
+  icon: React.ReactNode;
+  title: string;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.menu,
+        {
+          backgroundColor: theme.surface,
+          borderColor: theme.border,
+          opacity: pressed ? 0.72 : 1,
+        },
+      ]}
+    >
+      <View style={[styles.menuIcon, { backgroundColor: theme.surfaceAlt }]}>
+        {icon}
+      </View>
+      <Text style={[styles.menuText, { color: theme.text }]}>{title}</Text>
+    </Pressable>
+  );
+}
+const guideStyles = StyleSheet.create({
+  stepTwo: { height: 134, paddingHorizontal: 20, alignItems: "center" },
+  card: {
+    width: "100%",
+    maxWidth: 430,
+    height: 112,
+    borderWidth: 1,
+    borderRadius: 18,
+    flexDirection: "row",
+    overflow: "hidden",
+    marginBottom: 22,
+  },
+  image: { width: 112, height: 112, backgroundColor: "#08150e" },
+  copy: {
+    flex: 1,
+    paddingHorizontal: 15,
+    paddingVertical: 13,
+    justifyContent: "center",
+  },
+  label: { fontSize: 10, fontWeight: "900", letterSpacing: 1.1 },
+  title: { fontFamily: "Georgia_Bold", fontSize: 18, marginTop: 3 },
+  text: { fontSize: 12, lineHeight: 17, marginTop: 4 },
+});
+const styles = StyleSheet.create({
+  content: { padding: 20 },
+  profile: {
+    paddingVertical: 18,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+  },
+  avatar: {
+    width: 64,
+    height: 64,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+  },
+  avatarImage: { width: "100%", height: "100%" },
+  name: { fontFamily: "Georgia_Regular", fontSize: 25 },
+  accountRole: { fontSize: 12, fontWeight: "800", marginTop: 3 },
+  grid: { marginTop: 15, flexDirection: "row", flexWrap: "wrap", gap: 10 },
+  menu: {
+    width: "48%",
+    flexGrow: 1,
+    minHeight: 124,
+    padding: 14,
+    borderWidth: 1,
+    borderRadius: 16,
+    justifyContent: "space-between",
+  },
+  menuIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  menuText: { fontSize: 13, fontWeight: "800", lineHeight: 18 },
+  signOut: {
+    height: 52,
+    marginTop: 18,
+    borderWidth: 1,
+    borderRadius: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  eyebrow: {
+    fontSize: 11,
+    fontWeight: "900",
+    letterSpacing: 1.2,
+    marginTop: 12,
+  },
+  signupHeadingRow: {
+    minHeight: 34,
+    marginTop: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  signupEyebrow: { marginTop: 0 },
+  title: { fontFamily: "Georgia_Regular", fontSize: 35, marginTop: 8 },
+  copy: { fontSize: 14, lineHeight: 21, marginTop: 8 },
+  form: { marginTop: 24, padding: 18, borderWidth: 1, borderRadius: 17 },
+  googleButton: {
+    height: 50,
+    borderWidth: 1,
+    borderRadius: 11,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+  },
+  googleLogo: { width: 18, height: 18 },
+  googleText: { fontSize: 14, fontWeight: "600" },
+  label: { fontSize: 12, fontWeight: "800", marginBottom: 7 },
+  input: {
+    height: 49,
+    borderWidth: 1,
+    borderRadius: 11,
+    paddingHorizontal: 13,
+    fontSize: 15,
+    marginBottom: 16,
+  },
+  passwordInput: { paddingRight: 48 },
+  eye: { position: "absolute", right: 14, top: 14 },
+  forgot: {
+    fontSize: 13,
+    fontWeight: "800",
+    textAlign: "right",
+    marginTop: -7,
+    marginBottom: 17,
+  },
+  error: {
+    color: "#ad4437",
+    backgroundColor: "#fbece8",
+    padding: 11,
+    borderRadius: 8,
+    marginBottom: 14,
+  },
+  submit: {
+    height: 50,
+    borderRadius: 11,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  create: { textAlign: "center", fontSize: 13, marginTop: 18 },
+  roleRow: { flexDirection: "row", gap: 9, marginBottom: 16 },
+  roleButton: {
+    flex: 1,
+    height: 48,
+    borderWidth: 1,
+    borderRadius: 11,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  nameRow: { flexDirection: "row", gap: 10 },
+  progress: {
+    height: 76,
+    paddingHorizontal: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+  },
+  progressLogo: { width: 126, height: 36 },
+  progressSteps: {
+    flex: 1,
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 6,
+  },
+  progressDot: { height: 8, borderRadius: 8 },
+  progressCount: { fontSize: 11, fontWeight: "800" },
+  welcomeTheme: {
+    width: 34,
+    height: 34,
+    borderWidth: 1,
+    borderRadius: 11,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  welcomeAmaraBadge: {
+    alignSelf: "flex-start",
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    borderRadius: 7,
+  },
+  onboarding: { padding: 24, paddingTop: 26, alignItems: "center" },
+  welcomeArt: {
+    width: "100%",
+    height: 300,
+    borderRadius: 24,
+    overflow: "hidden",
+    marginBottom: 24,
+    position: "relative",
+  },
+  welcomeImage: { width: "100%", height: "100%" },
+  welcomeScrim: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 100,
+    backgroundColor: "rgba(9,31,20,.72)",
+  },
+  welcomeLabel: { position: "absolute", left: 18, right: 18, bottom: 15 },
+  welcomeMini: {
+    color: "#f3c94d",
+    fontSize: 10,
+    fontWeight: "900",
+    letterSpacing: 1.2,
+  },
+  welcomeLabelCopy: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "800",
+    marginTop: 3,
+  },
+  onboardingTitle: {
+    fontFamily: "Georgia_Bold",
+    fontSize: 34,
+    textAlign: "center",
+    marginTop: 10,
+  },
+  onboardingCopy: {
+    fontSize: 15,
+    lineHeight: 23,
+    textAlign: "center",
+    maxWidth: 420,
+    marginTop: 12,
+    marginBottom: 24,
+  },
+  onboardingButton: {
+    width: "100%",
+    maxWidth: 430,
+    height: 54,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 10,
+  },
+  secondaryLink: {
+    fontSize: 14,
+    fontWeight: "800",
+    textAlign: "center",
+    padding: 18,
+  },
+  stepIcon: {
+    width: 78,
+    height: 78,
+    borderRadius: 24,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  otp: {
+    width: "100%",
+    maxWidth: 430,
+    height: 66,
+    borderWidth: 1,
+    borderRadius: 14,
+    textAlign: "center",
+    fontSize: 28,
+    fontWeight: "800",
+    letterSpacing: 12,
+    marginBottom: 18,
+  },
+  photoPicker: {
+    width: 152,
+    height: 152,
+    borderRadius: 48,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+  },
+  photoPreview: { width: "100%", height: "100%" },
+  cameraBadge: {
+    position: "absolute",
+    right: 8,
+    bottom: 8,
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  inlineBack: {
+    width: 26,
+    height: 30,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+});

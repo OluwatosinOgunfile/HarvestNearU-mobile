@@ -38,6 +38,7 @@ yarn-error.*
 *.apk
 *.aab
 .expo-dev.log
+.expo-preview.log
 .chrome-*/
 account-check.png
 dist-test/
