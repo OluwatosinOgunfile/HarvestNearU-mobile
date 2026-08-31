@@ -1,6 +1,7 @@
 import { useFocusEffect, useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import {
+  ChevronDown,
   CircleDollarSign,
   Eye,
   EyeOff,
@@ -106,6 +107,9 @@ export default function Workspace() {
   const [editListing, setEditListing] = useState<Listing | null>(null);
   const [editStock, setEditStock] = useState("");
   const [editStatus, setEditStatus] = useState<"active" | "paused">("active");
+  const [closedOrdersOpen, setClosedOrdersOpen] = useState(true);
+  const [inventoryOpen, setInventoryOpen] = useState(true);
+  const [reviewsOpen, setReviewsOpen] = useState(true);
   const staff = user?.role === "admin" || user?.role === "support";
   const openConsole = useCallback(async () => {
     setBusy("console");
@@ -501,6 +505,8 @@ export default function Workspace() {
               theme={theme}
               title="Closed orders"
               subtitle="Completed, cancelled, and refunded farm orders"
+              open={closedOrdersOpen}
+              onToggle={() => setClosedOrdersOpen((value) => !value)}
             >
               {data.orders.filter((order) =>
                 ["delivered", "collected", "cancelled", "refunded"].includes(
@@ -588,6 +594,8 @@ export default function Workspace() {
               theme={theme}
               title="Inventory"
               subtitle={`${data.listings.length} listings for ${data.farm.name}`}
+              open={inventoryOpen}
+              onToggle={() => setInventoryOpen((value) => !value)}
             >
               {data.listings.length ? (
                 data.listings.map((listing) => (
@@ -646,6 +654,8 @@ export default function Workspace() {
               theme={theme}
               title="Customer reviews"
               subtitle={`Feedback for ${data.farm.name}`}
+              open={reviewsOpen}
+              onToggle={() => setReviewsOpen((value) => !value)}
             >
               {data.reviews?.length ? (
                 data.reviews.map((review) => (
@@ -900,12 +910,18 @@ function Section({
   title,
   subtitle,
   children,
+  open,
+  onToggle,
 }: {
   theme: any;
   title: string;
   subtitle: string;
   children: React.ReactNode;
+  open?: boolean;
+  onToggle?: () => void;
 }) {
+  const collapsible = Boolean(onToggle);
+  const expanded = open !== false;
   return (
     <View
       style={[
@@ -913,11 +929,21 @@ function Section({
         { backgroundColor: theme.surface, borderColor: theme.border },
       ]}
     >
-      <Text style={[styles.sectionTitle, { color: theme.text }]}>{title}</Text>
-      <Text style={[styles.sectionCopy, { color: theme.muted }]}>
-        {subtitle}
-      </Text>
-      {children}
+      <Pressable
+        disabled={!collapsible}
+        accessibilityRole={collapsible ? "button" : undefined}
+        accessibilityState={collapsible ? { expanded } : undefined}
+        accessibilityLabel={collapsible ? `${expanded ? "Collapse" : "Expand"} ${title}` : undefined}
+        onPress={onToggle}
+        style={styles.sectionHeading}
+      >
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>{title}</Text>
+          <Text style={[styles.sectionCopy, { color: theme.muted, marginBottom: collapsible && !expanded ? 0 : 12 }]}>{subtitle}</Text>
+        </View>
+        {collapsible ? <View style={[styles.sectionToggle, { borderColor: theme.border }]}><ChevronDown size={18} color={theme.text} style={{ transform: [{ rotate: expanded ? "180deg" : "0deg" }] }}/></View> : null}
+      </Pressable>
+      {expanded ? children : null}
     </View>
   );
 }
@@ -1005,6 +1031,8 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   section: { marginTop: 14, padding: 16, borderWidth: 1, borderRadius: 16 },
+  sectionHeading: { flexDirection: "row", alignItems: "center", gap: 12 },
+  sectionToggle: { width: 36, height: 36, borderWidth: 1, borderRadius: 9, alignItems: "center", justifyContent: "center" },
   sectionTitle: { fontFamily: "serif", fontSize: 22, fontWeight: "600" },
   sectionCopy: { fontSize: 12, marginTop: 4, marginBottom: 12 },
   order: { paddingVertical: 13, borderTopWidth: 1 },
