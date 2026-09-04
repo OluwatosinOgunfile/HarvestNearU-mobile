@@ -12,6 +12,7 @@ import {
   Headphones,
   Heart,
   LogIn,
+  Mail,
   MailCheck,
   MapPin,
   Moon,
@@ -393,6 +394,12 @@ export default function Account() {
               icon={<ShieldCheck size={21} color={theme.primary} />}
               title="Privacy & security"
               onPress={() => router.push("/privacy")}
+            />
+            <Menu
+              theme={theme}
+              icon={<Mail size={21} color={theme.primary} />}
+              title="Email preferences"
+              onPress={() => router.push("/email-preferences" as never)}
             />
             <Menu
               theme={theme}
