@@ -10,7 +10,7 @@ import { Text } from '@/components/typography';
 import { api, clearSessionToken, saveSessionToken } from '@/lib/api';
 import { themes } from '@/lib/theme';
 
-export type User = { id:string; email:string; firstName:string; lastName:string; role:'consumer'|'farmer'|'admin'|'support'; avatarUrl:string|null };
+export type User = { id:string; email:string; firstName:string; lastName:string; role:'consumer'|'farmer'|'admin'|'support'; avatarUrl:string|null; requiresLocation?:boolean };
 export type Product = { id:string; farmId:string; name:string; farmer:string; location:string; distance:number; price:number; unit:string; stock:number; sold:number; restockTotal:number; category:string; available:string; rating:number; reviewCount:number; image:string; badge?:string };
 export type FarmSummary = { id:string; name:string; location:string; image:string; category:string; rating:number; reviewCount:number; sold:number; listings:number };
 type ContextValue = {
@@ -91,7 +91,7 @@ export function AppProvider({ children }: PropsWithChildren) {
     setCartNotice({message:`${product.name} added to your basket`,key:Date.now()});
   };
   const updateCart=(id:string,delta:number)=>setCart(current=>{ const product=products.find(item=>item.id===id); const next=Math.max(0,Math.min(product?.stock||0,(current[id]||0)+delta)); const value={...current}; if(next)value[id]=next;else delete value[id];return value; });
-  const signIn=async(identifier:string,password:string)=>{ const result=await api<{user:User;sessionToken?:string}>('/api/auth/signin',{method:'POST',body:JSON.stringify({identifier,password})});await saveSessionToken(result.sessionToken);await load();setUser(result.user); };
+  const signIn=async(identifier:string,password:string)=>{ const result=await api<{user:User;sessionToken?:string}>('/api/auth/signin',{method:'POST',body:JSON.stringify({identifier,password})});await saveSessionToken(result.sessionToken);await load();await loadSession(); };
   const signOut=async()=>{ try { if(pushToken)await api('/api/notifications/push-token',{method:'DELETE',body:JSON.stringify({token:pushToken})}).catch(()=>undefined);await api('/api/auth/signout',{method:'POST'}); } finally { setPushToken(null);await clearSessionToken(); setUser(null); } };
   const signUp=async(input:Record<string,string>)=>{const result=await api<{user:User;sessionToken?:string}>('/api/auth/signup',{method:'POST',body:JSON.stringify(input)});if(result.sessionToken)await saveSessionToken(result.sessionToken);await load();setUser(result.user);};
   const clearCart=()=>setCart({});

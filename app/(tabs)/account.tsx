@@ -208,7 +208,7 @@ export default function Account() {
     setForm({});
     setCode("");
     setOnboarding("none");
-    router.replace("/");
+    router.replace("/location?onboarding=1" as never);
   }
   if (onboarding === "welcome")
     return (
