@@ -6,17 +6,26 @@ const stopWords = new Set([
 const marketplaceIntents: Array<{ phrases: string[]; terms: string[]; context?: 'nutrition' }> = [
   { phrases: ['vitamin c', 'vitamin-c'], terms: ['orange', 'pineapple', 'tomato', 'pepper', 'fruit'], context: 'nutrition' },
   { phrases: ['vitamin a', 'vitamin-a'], terms: ['carrot', 'spinach', 'ugwu', 'sweet potato', 'egg'], context: 'nutrition' },
+  { phrases: ['vitamin e', 'vitamin-e'], terms: ['avocado', 'spinach', 'ugwu', 'egg'], context: 'nutrition' },
   { phrases: ['iron rich', 'iron-rich', 'iron'], terms: ['spinach', 'ugwu', 'beans', 'egg'], context: 'nutrition' },
   { phrases: ['high protein', 'protein rich', 'protein'], terms: ['egg', 'beans', 'chicken', 'turkey'], context: 'nutrition' },
   { phrases: ['carbohydrates', 'carbohydrate', 'carbonhydrates', 'carbs'], terms: ['rice', 'yam', 'cassava', 'plantain', 'corn', 'beans', 'tuber', 'grain'], context: 'nutrition' },
   { phrases: ['potassium'], terms: ['plantain', 'yam', 'cassava', 'sweet potato', 'spinach', 'ugwu', 'okra', 'avocado', 'tomato', 'orange'], context: 'nutrition' },
   { phrases: ['low sodium', 'sodium'], terms: ['spinach', 'ugwu', 'carrot', 'cucumber', 'tomato', 'avocado', 'fruit', 'vegetable'], context: 'nutrition' },
+  { phrases: ['calcium'], terms: ['spinach', 'ugwu', 'egg', 'beans', 'orange'], context: 'nutrition' },
+  { phrases: ['magnesium'], terms: ['spinach', 'ugwu', 'beans', 'avocado', 'plantain'], context: 'nutrition' },
+  { phrases: ['fibre', 'fiber'], terms: ['beans', 'okra', 'avocado', 'carrot', 'fruit', 'vegetable', 'grain'], context: 'nutrition' },
+  { phrases: ['folate', 'folic acid'], terms: ['spinach', 'ugwu', 'beans', 'avocado', 'orange'], context: 'nutrition' },
+  { phrases: ['zinc'], terms: ['egg', 'beans', 'chicken', 'turkey'], context: 'nutrition' },
+  { phrases: ['antioxidant', 'antioxidants'], terms: ['tomato', 'pepper', 'carrot', 'orange', 'spinach', 'ugwu'], context: 'nutrition' },
   { phrases: ['fried rice'], terms: ['rice', 'carrot', 'egg', 'peas', 'sweet corn', 'onion', 'pepper', 'chicken'] },
   { phrases: ['jollof rice', 'jollof'], terms: ['rice', 'tomato', 'pepper', 'onion', 'chicken'] },
   { phrases: ['vegetable soup', 'edikaikong', 'efo riro'], terms: ['ugwu', 'spinach', 'pepper', 'onion', 'tomato'] },
   { phrases: ['egusi soup', 'egusi'], terms: ['melon', 'ugwu', 'spinach', 'pepper', 'onion'] },
   { phrases: ['stew'], terms: ['tomato', 'pepper', 'onion', 'chicken', 'turkey'] },
   { phrases: ['salad'], terms: ['cucumber', 'carrot', 'lettuce', 'tomato', 'avocado'] },
+  { phrases: ['breakfast'], terms: ['egg', 'bread', 'plantain', 'yam', 'potato', 'fruit'] },
+  { phrases: ['pepper soup'], terms: ['pepper', 'chicken', 'turkey', 'fish'] },
 ];
 
 const produceSynonyms = [
