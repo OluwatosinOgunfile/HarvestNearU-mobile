@@ -377,6 +377,12 @@ export default function Account() {
             />
             <Menu
               theme={theme}
+              icon={<Store size={21} color={theme.primary} />}
+              title="Explore farms"
+              onPress={() => router.push("/farms" as never)}
+            />
+            <Menu
+              theme={theme}
               icon={<MapPin size={21} color={theme.primary} />}
               title="Saved location"
               onPress={() => router.push("/location")}

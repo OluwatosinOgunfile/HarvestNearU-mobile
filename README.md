@@ -10,6 +10,8 @@ Native Expo/React Native client for HarvestNearU. This is a separate mobile appl
 - Amara-assisted marketplace search, suggested matches, and dynamic category filtering
 - Full, uncropped, scrollable produce-image previews and linked farm storefronts
 - Free OpenStreetMap farm maps and routed directions
+- A searchable directory of every verified farm with in-stock and out-of-stock counts
+- Restock alerts on sold-out listings, delivered as a push notification and an email
 - Shared active pickup-centre directory with addresses and opening hours
 - Persistent basket, saved harvests, stock limits, and three fulfilment choices: doorstep, farm pickup, or arrange with farmer
 - Paystack handoff, database-backed open/completed orders, item tracking, receipt acknowledgement, farm ratings, and printable receipts
