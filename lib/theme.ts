@@ -1,12 +1,17 @@
+// Brand-documented roles come from BRAND.md; keep the two in step.
 export const palette = {
-  green: '#17633f',
+  green: '#1f5b3a',
+  greenAccent: '#2d7650',
   greenDark: '#0d3b27',
   greenSoft: '#eaf4e8',
   mint: '#72b889',
-  gold: '#efbe3e',
-  orange: '#e86f3b',
+  gold: '#c58d00',
+  // Harvest gold lightened for legibility over dark photography; BRAND.md documents no dark-surface gold.
+  goldOnDark: '#efbe3e',
+  orange: '#e9763d',
   cream: '#f7f8f3',
-  ink: '#14251b',
+  night: '#111713',
+  ink: '#17231b',
   muted: '#68766d',
   white: '#ffffff',
   line: '#dce4da',
@@ -26,5 +31,5 @@ export type AppTheme = {
 
 export const themes: Record<'light' | 'dark', AppTheme> = {
   light: { background: palette.cream, surface: palette.white, surfaceAlt: '#eff4ec', text: palette.ink, muted: palette.muted, border: palette.line, primary: palette.green, primaryText: palette.white },
-  dark: { background: '#101813', surface: '#18231c', surfaceAlt: '#223128', text: '#f1f5f2', muted: '#a4b0a8', border: '#33463a', primary: '#68ae80', primaryText: '#102217' },
+  dark: { background: palette.night, surface: '#18231c', surfaceAlt: '#223128', text: '#f1f5f2', muted: '#a4b0a8', border: '#33463a', primary: '#68ae80', primaryText: '#102217' },
 };

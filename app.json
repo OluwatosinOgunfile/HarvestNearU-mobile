@@ -49,7 +49,7 @@
           "resizeMode": "contain",
           "backgroundColor": "#f7f8f3",
           "dark": {
-            "backgroundColor": "#101813"
+            "backgroundColor": "#111713"
           }
         }
       ],
@@ -70,7 +70,7 @@
         "expo-notifications",
         {
           "icon": "./assets/images/icon.png",
-          "color": "#17633f",
+          "color": "#1f5b3a",
           "defaultChannel": "actionable"
         }
       ],
