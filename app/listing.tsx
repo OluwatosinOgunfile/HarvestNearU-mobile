@@ -3,7 +3,9 @@ import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { Camera, ChevronLeft, ImagePlus, Save, Sparkles } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
+
 import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
+import { DEFAULT_FEE_POLICY, FeeNotice, type FeePolicy } from '@/components/fee-notice';
 import { Screen } from '@/components/screen';
 import { SelectDropdown } from '@/components/select-dropdown';
 import { Text, TextInput } from '@/components/typography';
@@ -25,9 +27,10 @@ export default function Listing() {
   const [notes, setNotes] = useState('');
   const [photoNote, setPhotoNote] = useState('');
   const [error, setError] = useState('');
+  const [fees, setFees] = useState<FeePolicy>(DEFAULT_FEE_POLICY);
 
-  useEffect(() => { api<{farms:Option[];categories:Option[]}>('/api/farmer/dashboard').then((data) => {
-    setFarms(data.farms || []); setCategories(data.categories || []);
+  useEffect(() => { api<{farms:Option[];categories:Option[];fees?:FeePolicy}>('/api/farmer/dashboard').then((data) => {
+    setFarms(data.farms || []); setCategories(data.categories || []); if(data.fees) setFees(data.fees);
     const farm = data.farms?.find((item) => item.verification_status === 'verified');
     setForm((value) => ({ ...value, farmId:farm?.id || '', categoryId:data.categories?.[0]?.id || '' }));
   }).catch((reason) => setError((reason as Error).message)).finally(() => setLoading(false)); }, []);
@@ -72,6 +75,7 @@ export default function Listing() {
       <View style={[styles.card,{backgroundColor:theme.surface,borderColor:theme.border}]}>
         <Field theme={theme} label="Listing title" value={form.name} onChangeText={set('name')}/>
         <View style={styles.row}><Field theme={theme} label="Unit" value={form.unit} placeholder="basket" onChangeText={set('unit')}/><Field theme={theme} label="Price (NGN)" value={form.price} keyboardType="numeric" onChangeText={set('price')}/></View>
+        <FeeNotice price={form.price} fee={fees}/>
         <View style={styles.row}><Field theme={theme} label="Stock quantity" value={form.stock} keyboardType="numeric" onChangeText={set('stock')}/><Field theme={theme} label="Harvest date" value={form.harvestDate} placeholder="YYYY-MM-DD" onChangeText={set('harvestDate')}/></View>
         <Field theme={theme} label="Badge (optional)" value={form.badge} onChangeText={set('badge')}/>
         <Pressable onPress={() => void chooseImage()} style={[styles.upload,{borderColor:theme.primary,backgroundColor:theme.surfaceAlt}]}>{image ? <Image source={{uri:image.uri}} style={styles.preview}/> : <View style={styles.imageIcon}><ImagePlus size={26} color={theme.primary}/></View>}<View style={{flex:1}}><Text style={[styles.uploadTitle,{color:theme.text}]}>{image ? 'Change produce picture' : 'Choose produce picture'}</Text><Text style={{color:theme.muted}}>JPG, PNG, or WebP up to 3 MB</Text></View><Camera size={20} color={theme.primary}/></Pressable>{photoNote?<Text style={[styles.photoNote,{color:theme.muted}]}>{photoNote}</Text>:null}

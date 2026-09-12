@@ -4,6 +4,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { Camera, ChevronLeft, Plus, Save } from "lucide-react-native";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
+import { DEFAULT_FEE_POLICY, FeeNotice, type FeePolicy } from "@/components/fee-notice";
 import { Screen } from "@/components/screen";
 import { SelectDropdown } from "@/components/select-dropdown";
 import { Text, TextInput } from "@/components/typography";
@@ -27,7 +28,7 @@ type Listing = {
   stored_image_url: string | null;
   badge?: string | null;
 };
-type Dashboard = { listings: Listing[]; categories: Option[] };
+type Dashboard = { listings: Listing[]; categories: Option[]; fees?: FeePolicy };
 
 const dateTimeValue = (value: string | null) =>
   value ? new Date(value).toISOString().slice(0, 16) : "";
@@ -57,6 +58,7 @@ export default function ListingEdit() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [fees, setFees] = useState<FeePolicy>(DEFAULT_FEE_POLICY);
 
   useEffect(() => {
     api<Dashboard>(
@@ -67,6 +69,7 @@ export default function ListingEdit() {
         if (!found) throw new Error("Listing not found");
         setListing(found);
         setCategories(data.categories || []);
+        if (data.fees) setFees(data.fees);
         setForm({
           categoryId: found.category_id,
           name: found.title,
@@ -283,6 +286,7 @@ export default function ListingEdit() {
                 onChangeText={set("price")}
               />
             </View>
+            <FeeNotice price={form.price} fee={fees} />
             <View style={styles.row}>
               <Field
                 theme={theme}

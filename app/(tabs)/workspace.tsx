@@ -2,6 +2,7 @@ import { useFocusEffect, useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import {
   ChevronDown,
+  ChevronUp,
   CircleDollarSign,
   ShieldCheck,
   Eye,
@@ -952,7 +953,9 @@ function Section({
           <Text style={[styles.sectionTitle, { color: theme.text }]}>{title}</Text>
           <Text style={[styles.sectionCopy, { color: theme.muted, marginBottom: collapsible && !expanded ? 0 : 12 }]}>{subtitle}</Text>
         </View>
-        {collapsible ? <View style={[styles.sectionToggle, { borderColor: theme.border }]}><ChevronDown size={18} color={theme.text} style={{ transform: [{ rotate: expanded ? "180deg" : "0deg" }] }}/></View> : null}
+        {/* The arrow is swapped rather than rotated: a rotate transform on the icon stops it drawing
+            entirely, which left an empty button and no way to collapse a section again. */}
+        {collapsible ? <View style={[styles.sectionToggle, { borderColor: theme.border }]}>{expanded ? <ChevronUp size={18} color={theme.text}/> : <ChevronDown size={18} color={theme.text}/>}</View> : null}
       </Pressable>
       {expanded ? children : null}
     </View>
