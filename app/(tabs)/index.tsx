@@ -4,7 +4,7 @@ import { ArrowRight, Check, LocateFixed, MapPin, Search, ShoppingBag, Star, Stor
 import { useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Animated, Pressable, ScrollView, StyleSheet, TextInput as NativeTextInput, useWindowDimensions, View } from 'react-native';
 import { Header } from '@/components/header';
-import { CategoryArtwork } from '@/components/category-artwork';
+import { CATEGORY_GROUND, CategoryArtwork } from '@/components/category-artwork';
 import { ListingImage } from '@/components/listing-image';
 import { Money } from '@/components/money';
 import { ProductCard } from '@/components/product-card';
@@ -65,7 +65,7 @@ export default function HomeScreen() {
 
     <Section>
       <View style={styles.sectionHead}><View style={styles.sectionHeadCopy}><Text style={[styles.kicker,{color:theme.primary}]}>SHOP BY CATEGORY</Text><Text style={[styles.sectionTitle,{color:theme.text}]}>What are you looking for?</Text></View><Pressable accessibilityLabel="See all produce" onPress={()=>router.push('/shop')} style={styles.viewAllTap}><Text style={[styles.viewAll,{color:theme.primary}]}>View all</Text></Pressable></View>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryScroll}>{categories.map(item=>{const active=category===item.name;const stocked=item.name==='All'||item.listings>0;return <Pressable key={item.name} accessibilityLabel={stocked?`${item.name}, ${item.listings} available`:`${item.name}, none listed yet`} onPress={()=>{setCategory(item.name);router.push({pathname:'/shop',params:item.name==='All'?{}:{category:item.name}})}} style={[styles.categoryItem,!stocked&&styles.categoryItemEmpty]}><View style={[styles.categoryImageWrap,{borderColor:active?theme.primary:theme.border,backgroundColor:theme.surfaceAlt}]}><CategoryArtwork category={item.name} size={68}/></View><Text numberOfLines={2} style={[styles.categoryLabel,{color:active?theme.primary:theme.text}]}>{item.name}</Text><Text numberOfLines={1} style={[styles.categoryCount,{color:theme.muted}]}>{stocked?item.listings:'Coming soon'}</Text></Pressable>})}</ScrollView>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryScroll}>{categories.map(item=>{const active=category===item.name;const stocked=item.name==='All'||item.listings>0;return <Pressable key={item.name} accessibilityLabel={stocked?`${item.name}, ${item.listings} available`:`${item.name}, none listed yet`} onPress={()=>{setCategory(item.name);router.push({pathname:'/shop',params:item.name==='All'?{}:{category:item.name}})}} style={[styles.categoryItem,!stocked&&styles.categoryItemEmpty]}><View style={[styles.categoryImageWrap,{borderColor:active?theme.primary:theme.border,backgroundColor:CATEGORY_GROUND}]}><CategoryArtwork category={item.name} size={68}/></View><Text numberOfLines={2} style={[styles.categoryLabel,{color:active?theme.primary:theme.text}]}>{item.name}</Text><Text numberOfLines={1} style={[styles.categoryCount,{color:theme.muted}]}>{stocked?item.listings:'Coming soon'}</Text></Pressable>})}</ScrollView>
     </Section>
 
     <Section>
