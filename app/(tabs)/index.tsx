@@ -35,8 +35,13 @@ export default function HomeScreen() {
   const heroHeight = width >= 760 ? Math.min(410,Math.max(350,width*.3)) : Math.min(350,Math.max(330,(width-24)*.86));
 
   const categories = useMemo(() => {
-    if (catalogue.length) return [{ name:'All', listings:products.length }, ...catalogue.map(item => ({ name:item.name, listings:item.listings }))];
-    return [{ name:'All', listings:products.length }, ...Array.from(new Set(products.map(product => product.category))).sort().map(name => ({ name, listings:0 }))];
+    // Counts always come from the produce actually loaded, so a backend that predates the category
+    // endpoint still labels each category correctly instead of reporting every one as empty.
+    const stocked = new Map<string,number>();
+    for (const product of products) stocked.set(product.category, (stocked.get(product.category) || 0) + 1);
+    const all = { name:'All', listings:products.length };
+    if (catalogue.length) return [all, ...catalogue.map(item => ({ name:item.name, listings:stocked.get(item.name) ?? item.listings }))];
+    return [all, ...Array.from(stocked.keys()).sort().map(name => ({ name, listings:stocked.get(name) || 0 }))];
   },[products,catalogue]);
 
   const visibleProducts = useMemo(() => {
