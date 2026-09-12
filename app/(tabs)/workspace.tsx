@@ -3,6 +3,7 @@ import * as WebBrowser from "expo-web-browser";
 import {
   ChevronDown,
   CircleDollarSign,
+  ShieldCheck,
   Eye,
   EyeOff,
   Leaf,
@@ -335,6 +336,16 @@ export default function Workspace() {
               Manage your harvest.
             </Text>
           </View>
+          <Pressable
+            accessibilityLabel="Farm verification"
+            onPress={() => router.push(`/farm-verification?farmId=${farmId}` as never)}
+            style={[
+              styles.addTop,
+              { borderWidth: 1, borderColor: theme.primary, marginRight: 8 },
+            ]}
+          >
+            <ShieldCheck size={20} color={theme.primary} />
+          </Pressable>
           <Pressable
             accessibilityLabel="Payouts"
             onPress={() => router.push("/payouts" as never)}
