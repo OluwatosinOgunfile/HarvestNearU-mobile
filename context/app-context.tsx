@@ -61,13 +61,22 @@ export function AppProvider({ children }: PropsWithChildren) {
   }, []);
 
   const loadSession = useCallback(async () => {
-    try {
-      const session = await api<{user:User|null}>('/api/auth/session');
-      setUser(session.user);
-    } catch {
-      // The public marketplace must remain usable when session recovery fails.
-      setUser(null);
-    } finally { setSessionReady(true); }
+    // Signing out is reported as a successful response carrying a null user, so reaching the catch
+    // means the check itself did not complete — a dropped connection, a timeout, or a server
+    // restart. The stored token is still valid in that case, so the session is retried and then
+    // left alone rather than signing someone out of an account that never ended.
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      try {
+        const session = await api<{user:User|null}>('/api/auth/session');
+        setUser(session.user);
+        setSessionReady(true);
+        return;
+      } catch (reason) {
+        if (attempt === 0) { await new Promise(resolve => setTimeout(resolve, 1200)); continue; }
+        console.warn('Session check could not be completed; keeping the current session.', (reason as Error).message);
+      }
+    }
+    setSessionReady(true);
   }, []);
   const refreshNotifications = useCallback(async () => {
     if (!user) { setNotificationCount(0); return; }

@@ -28,6 +28,16 @@ export function multipartFile(uri: string) {
   return new File(uri);
 }
 
+/** Carries the HTTP status so callers can tell a refusal from a request that never completed. */
+export class ApiError extends Error {
+  status: number;
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+  }
+}
+
 export async function api<T>(path: string, init?: RequestInit): Promise<T> {
   const token = await AsyncStorage.getItem(SESSION_KEY);
   const requestInit = {
@@ -47,9 +57,9 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
   let data: T & { error?: string };
   try { data = text ? JSON.parse(text) : ({} as T & { error?: string }); }
   catch {
-    if (response.status === 404) throw new Error('This feature is waiting for the latest server update. Please try again shortly.');
-    throw new Error(`The server returned an unreadable response (${response.status}).`);
+    if (response.status === 404) throw new ApiError('This feature is waiting for the latest server update. Please try again shortly.', 404);
+    throw new ApiError(`The server returned an unreadable response (${response.status}).`, response.status);
   }
-  if (!response.ok) throw new Error(data.error || `Request failed (${response.status})`);
+  if (!response.ok) throw new ApiError(data.error || `Request failed (${response.status})`, response.status);
   return data;
 }
