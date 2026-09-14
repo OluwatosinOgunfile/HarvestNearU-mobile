@@ -1,21 +1,22 @@
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { Plus, Store, X } from 'lucide-react-native';
-import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Modal, ScrollView, StyleSheet, View } from 'react-native';
 import { absoluteUrl } from '@/lib/api';
 import { titleCase } from '@/lib/format';
 import { Product, useApp } from '@/context/app-context';
 import { Money } from './money';
 import { Text } from './typography';
+import { Tap } from '@/components/tap';
 
 export function ProductPreview({ product, visible, onClose }: { product:Product; visible:boolean; onClose:()=>void }) {
   const router = useRouter();
   const { theme, add } = useApp();
   return <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
     <View style={styles.backdrop}>
-      <Pressable accessibilityLabel="Close produce preview" style={StyleSheet.absoluteFill} onPress={onClose} />
+      <Tap accessibilityLabel="Close produce preview" style={StyleSheet.absoluteFill} onPress={onClose} />
       <View style={[styles.modal, { backgroundColor: theme.surface }]}>
-        <Pressable onPress={onClose} style={styles.close}><X size={22} /></Pressable>
+        <Tap onPress={onClose} style={styles.close}><X size={22} /></Tap>
         <ScrollView
           style={styles.scroller}
           showsVerticalScrollIndicator
@@ -23,17 +24,17 @@ export function ProductPreview({ product, visible, onClose }: { product:Product;
           bounces
           contentContainerStyle={styles.scrollContent}
         >
-          <Image source={{ uri: absoluteUrl(product.image) }} style={styles.image} contentFit="contain" />
+          <Image source={{ uri: absoluteUrl(product.image) }} style={styles.image} contentFit="contain"  transition={220}/>
           <View style={styles.info}>
             <Text style={[styles.kicker, { color: theme.primary }]}>{product.available.toUpperCase()} {'\u00B7'} {product.category.toUpperCase()}</Text>
             <Text style={[styles.title, { color: theme.text }]}>{titleCase(product.name)}</Text>
-            <Pressable accessibilityRole="link" onPress={() => { onClose(); router.push({ pathname:'/farms/[id]', params:{ id:product.farmId } }); }} style={styles.farmLink}>
+            <Tap accessibilityRole="link" onPress={() => { onClose(); router.push({ pathname:'/farms/[id]', params:{ id:product.farmId } }); }} style={styles.farmLink}>
               <Store size={15} color={theme.primary} /><Text style={{ color:theme.primary, fontWeight:'700' }}>{product.farmer}</Text>
-            </Pressable>
+            </Tap>
             <Text style={{ color:theme.muted, marginTop:4 }}>{product.location}</Text>
             <View style={styles.action}>
               <View style={styles.priceRow}><Money value={product.price} style={[styles.price, { color:theme.text }]} /><Text style={{ fontSize:12, color:theme.muted }}>/ {product.unit}</Text></View>
-              <Pressable onPress={() => { add(product); onClose(); }} style={[styles.add, { backgroundColor:theme.primary }]}><Plus size={18} color={theme.primaryText} /><Text style={{ color:theme.primaryText, fontWeight:'800' }}>Add to basket</Text></Pressable>
+              <Tap onPress={() => { add(product); onClose(); }} style={[styles.add, { backgroundColor:theme.primary }]}><Plus size={18} color={theme.primaryText} /><Text style={{ color:theme.primaryText, fontWeight:'800' }}>Add to basket</Text></Tap>
             </View>
           </View>
         </ScrollView>

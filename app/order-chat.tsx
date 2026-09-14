@@ -1,8 +1,9 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ChevronLeft, Send } from "lucide-react-native";
 import { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
+import { ActivityIndicator, StyleSheet, View } from "react-native";
 
+import { Tap } from "@/components/tap";
 import { Screen } from "@/components/screen";
 import { Text, TextInput } from "@/components/typography";
 import { useApp } from "@/context/app-context";
@@ -47,7 +48,7 @@ export default function OrderChat() {
   }
   return <Screen refreshing={loading} onRefresh={load}>
     <View style={[styles.header, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}>
-      <Pressable accessibilityLabel="Back" onPress={() => router.back()} style={styles.back}><ChevronLeft size={21} color={theme.text}/></Pressable>
+      <Tap accessibilityLabel="Back" onPress={() => router.back()} style={styles.back}><ChevronLeft size={21} color={theme.text}/></Tap>
       <View style={{ flex: 1 }}><Text style={[styles.eyebrow, { color: theme.primary }]}>ARRANGE DELIVERY</Text><Text numberOfLines={1} style={[styles.title, { color: theme.text }]}>{data?.thread.farm_name || "Farmer conversation"}</Text></View>
     </View>
     <View style={styles.content}>
@@ -58,7 +59,7 @@ export default function OrderChat() {
             <Text style={[styles.author, { color: theme.primary }]}>{mine ? "You" : message.sender_name}</Text><Text style={{ color: theme.text, lineHeight: 20 }}>{message.body}</Text><Text style={[styles.time, { color: theme.muted }]}>{new Date(message.created_at).toLocaleString("en-NG", { dateStyle: "medium", timeStyle: "short" })}</Text>
           </View>;
         }) : <Text style={[styles.empty, { color: theme.muted }]}>Start the conversation about timing, location, and the delivery charge.</Text>}</View>
-        <View style={[styles.composer, { backgroundColor: theme.surface, borderColor: theme.border }]}><TextInput value={draft} onChangeText={setDraft} multiline maxLength={2000} placeholder="Message the farmer" placeholderTextColor={theme.muted} style={[styles.input, { color: theme.text }]}/><Pressable disabled={sending || !draft.trim()} onPress={() => void send()} style={[styles.send, { backgroundColor: theme.primary, opacity: sending || !draft.trim() ? .55 : 1 }]}>{sending ? <ActivityIndicator size="small" color={theme.primaryText}/> : <Send size={18} color={theme.primaryText}/>}</Pressable></View>
+        <View style={[styles.composer, { backgroundColor: theme.surface, borderColor: theme.border }]}><TextInput value={draft} onChangeText={setDraft} multiline maxLength={2000} placeholder="Message the farmer" placeholderTextColor={theme.muted} style={[styles.input, { color: theme.text }]}/><Tap disabled={sending || !draft.trim()} onPress={() => void send()} style={[styles.send, { backgroundColor: theme.primary, opacity: sending || !draft.trim() ? .55 : 1 }]}>{sending ? <ActivityIndicator size="small" color={theme.primaryText}/> : <Send size={18} color={theme.primaryText}/>}</Tap></View>
       </> : loading ? <ActivityIndicator color={theme.primary} style={{ marginTop: 70 }}/> : null}
       {error ? <Text style={styles.error}>{error}</Text> : null}
     </View>

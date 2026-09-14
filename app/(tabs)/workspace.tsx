@@ -22,11 +22,11 @@ import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   Modal,
-  Pressable,
   StyleSheet,
   TextInput,
   View,
 } from "react-native";
+import { Tap } from "@/components/tap";
 import { Header } from "@/components/header";
 import { Screen } from "@/components/screen";
 import { SelectDropdown } from "@/components/select-dropdown";
@@ -271,7 +271,7 @@ export default function Workspace() {
                 placeholderTextColor={theme.muted}
                 style={[styles.passwordInput, { color: theme.text }]}
               />
-              <Pressable
+              <Tap
                 accessibilityLabel={
                   showPassword ? "Hide password" : "Show password"
                 }
@@ -283,10 +283,10 @@ export default function Workspace() {
                 ) : (
                   <Eye size={20} color={theme.primary} />
                 )}
-              </Pressable>
+              </Tap>
             </View>
             {error ? <Text style={styles.error}>{error}</Text> : null}
-            <Pressable
+            <Tap
               disabled={!password || busy === "console"}
               onPress={() => void openConsole()}
               style={[
@@ -307,9 +307,9 @@ export default function Workspace() {
                   </Text>
                 </>
               )}
-            </Pressable>
+            </Tap>
           </View>
-          <Pressable
+          <Tap
             onPress={() => void signOut()}
             style={[
               styles.staffSignOut,
@@ -320,7 +320,7 @@ export default function Workspace() {
             <Text style={{ color: "#b64c3e", fontWeight: "800" }}>
               Sign out of HarvestNearU
             </Text>
-          </Pressable>
+          </Tap>
         </View>
       </Screen>
     );
@@ -337,7 +337,7 @@ export default function Workspace() {
               Manage your harvest.
             </Text>
           </View>
-          <Pressable
+          <Tap
             accessibilityLabel="Farm verification"
             onPress={() => router.push(`/farm-verification?farmId=${farmId}` as never)}
             style={[
@@ -346,8 +346,8 @@ export default function Workspace() {
             ]}
           >
             <ShieldCheck size={20} color={theme.primary} />
-          </Pressable>
-          <Pressable
+          </Tap>
+          <Tap
             accessibilityLabel="Payouts"
             onPress={() => router.push("/payouts" as never)}
             style={[
@@ -356,13 +356,13 @@ export default function Workspace() {
             ]}
           >
             <CircleDollarSign size={20} color={theme.primary} />
-          </Pressable>
-          <Pressable
+          </Tap>
+          <Tap
             onPress={() => router.push("/listing")}
             style={[styles.addTop, { backgroundColor: theme.primary }]}
           >
             <Plus size={20} color={theme.primaryText} />
-          </Pressable>
+          </Tap>
         </View>
         {data?.farms?.length ? (
           <SelectDropdown
@@ -473,7 +473,7 @@ export default function Workspace() {
                               </Text>
                             </View>
                             {next ? (
-                              <Pressable
+                              <Tap
                                 disabled={busy === item.id}
                                 onPress={() =>
                                   void advance(item, order.fulfilment_method)
@@ -498,12 +498,12 @@ export default function Workspace() {
                                     {next}
                                   </Text>
                                 )}
-                              </Pressable>
+                              </Tap>
                             ) : null}
                           </View>
                         );
                       })}
-                      {order.fulfilment_method === "farmer_delivery" ? <Pressable onPress={() => router.push({ pathname: "/order-chat", params: { orderId: order.order_id, farmId } } as never)} style={[styles.orderChat, { borderColor: theme.primary }]}><MessageCircle size={16} color={theme.primary}/><Text style={{ color: theme.primary, fontWeight: "900" }}>Chat with customer</Text></Pressable> : null}
+                      {order.fulfilment_method === "farmer_delivery" ? <Tap onPress={() => router.push({ pathname: "/order-chat", params: { orderId: order.order_id, farmId } } as never)} style={[styles.orderChat, { borderColor: theme.primary }]}><MessageCircle size={16} color={theme.primary}/><Text style={{ color: theme.primary, fontWeight: "900" }}>Chat with customer</Text></Tap> : null}
                     </View>
                   ))
               ) : (
@@ -632,7 +632,7 @@ export default function Workspace() {
                       <Text style={{ color: theme.primary, fontWeight: "800" }}>
                         {label(listing.status)}
                       </Text>
-                      <Pressable
+                      <Tap
                         accessibilityLabel={`Update ${listing.title} inventory`}
                         hitSlop={8}
                         onPress={() => openInventory(listing)}
@@ -645,14 +645,14 @@ export default function Workspace() {
                         ]}
                       >
                         <Pencil size={16} color={theme.primary} />
-                      </Pressable>
+                      </Tap>
                     </View>
                   </View>
                 ))
               ) : (
                 <Empty theme={theme} text="No produce listings yet." />
               )}
-              <Pressable
+              <Tap
                 onPress={() => router.push("/listing")}
                 style={[styles.primary, { backgroundColor: theme.primary }]}
               >
@@ -660,7 +660,7 @@ export default function Workspace() {
                 <Text style={{ color: theme.primaryText, fontWeight: "800" }}>
                   Add produce listing
                 </Text>
-              </Pressable>
+              </Tap>
             </Section>
             <Section
               theme={theme}
@@ -742,7 +742,7 @@ export default function Workspace() {
                 />
               )}
             </Section>
-            <Pressable
+            <Tap
               onPress={() =>
                 router.push({
                   pathname: "/farm-profile",
@@ -755,7 +755,7 @@ export default function Workspace() {
               <Text style={{ color: theme.primary, fontWeight: "800" }}>
                 Manage farm profile and locations
               </Text>
-            </Pressable>
+            </Tap>
           </>
         ) : null}
       </View>
@@ -783,13 +783,13 @@ export default function Workspace() {
                     : "Produce listing"}
                 </Text>
               </View>
-              <Pressable
+              <Tap
                 accessibilityLabel="Close inventory editor"
                 onPress={() => setEditListing(null)}
                 style={[styles.modalClose, { borderColor: theme.border }]}
               >
                 <X size={19} color={theme.text} />
-              </Pressable>
+              </Tap>
             </View>
             <Text style={[styles.inputLabel, { color: theme.text }]}>
               Available to sell
@@ -821,7 +821,7 @@ export default function Workspace() {
             </Text>
             <View style={styles.statusRow}>
               {(["active", "paused"] as const).map((status) => (
-                <Pressable
+                <Tap
                   key={status}
                   onPress={() => setEditStatus(status)}
                   style={[
@@ -844,11 +844,11 @@ export default function Workspace() {
                   >
                     {status === "active" ? "Available" : "Paused"}
                   </Text>
-                </Pressable>
+                </Tap>
               ))}
             </View>
             {error ? <Text style={styles.modalError}>{error}</Text> : null}
-            <Pressable
+            <Tap
               disabled={Boolean(
                 editListing && busy === `inventory-${editListing.id}`,
               )}
@@ -862,8 +862,8 @@ export default function Workspace() {
                   Save inventory
                 </Text>
               )}
-            </Pressable>
-            <Pressable
+            </Tap>
+            <Tap
               onPress={() => {
                 const id = editListing?.id;
                 setEditListing(null);
@@ -879,7 +879,7 @@ export default function Workspace() {
               <Text style={{ color: theme.primary, fontWeight: "900" }}>
                 Edit all listing details
               </Text>
-            </Pressable>
+            </Tap>
           </View>
         </View>
       </Modal>
@@ -941,7 +941,7 @@ function Section({
         { backgroundColor: theme.surface, borderColor: theme.border },
       ]}
     >
-      <Pressable
+      <Tap
         disabled={!collapsible}
         accessibilityRole={collapsible ? "button" : undefined}
         accessibilityState={collapsible ? { expanded } : undefined}
@@ -956,7 +956,7 @@ function Section({
         {/* The arrow is swapped rather than rotated: a rotate transform on the icon stops it drawing
             entirely, which left an empty button and no way to collapse a section again. */}
         {collapsible ? <View style={[styles.sectionToggle, { borderColor: theme.border }]}>{expanded ? <ChevronUp size={18} color={theme.text}/> : <ChevronDown size={18} color={theme.text}/>}</View> : null}
-      </Pressable>
+      </Tap>
       {expanded ? children : null}
     </View>
   );

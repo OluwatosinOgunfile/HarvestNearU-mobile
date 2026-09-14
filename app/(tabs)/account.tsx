@@ -29,13 +29,13 @@ import {
   ActivityIndicator,
   Animated,
   Image as NativeImage,
-  Pressable,
   StyleSheet,
   Switch,
   View,
   useWindowDimensions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Tap } from "@/components/tap";
 import { Header } from "@/components/header";
 import { Screen } from "@/components/screen";
 import { Text, TextInput } from "@/components/typography";
@@ -272,11 +272,11 @@ export default function Account() {
           disabled={code.length !== 6}
           onPress={() => void verify()}
         />
-        <Pressable disabled={busy} onPress={() => void resend()}>
+        <Tap disabled={busy} onPress={() => void resend()}>
           <Text style={[styles.secondaryLink, { color: theme.primary }]}>
             Send a new code
           </Text>
-        </Pressable>
+        </Tap>
       </OnboardingShell>
     );
   if (onboarding === "photo")
@@ -288,7 +288,7 @@ export default function Account() {
           title="Add a friendly face"
           copy="A clear photo helps farms, customers, and support recognise you."
         />
-        <Pressable
+        <Tap
           disabled={busy}
           onPress={() => void choosePhoto()}
           style={[
@@ -297,7 +297,7 @@ export default function Account() {
           ]}
         >
           {photoUri ? (
-            <Image source={{ uri: photoUri }} style={styles.photoPreview} />
+            <Image source={{ uri: photoUri }} style={styles.photoPreview}  transition={220}/>
           ) : (
             <>
               <UserRound size={68} color={theme.muted} />
@@ -308,7 +308,7 @@ export default function Account() {
               </View>
             </>
           )}
-        </Pressable>
+        </Tap>
         <Text style={[styles.onboardingTitle, { color: theme.text }]}>
           Make it yours
         </Text>
@@ -325,11 +325,11 @@ export default function Account() {
           busy={busy}
           onPress={photoUri ? finish : () => void choosePhoto()}
         />
-        <Pressable disabled={busy} onPress={finish}>
+        <Tap disabled={busy} onPress={finish}>
           <Text style={[styles.secondaryLink, { color: theme.muted }]}>
             Skip for now
           </Text>
-        </Pressable>
+        </Tap>
       </OnboardingShell>
     );
   if (user)
@@ -337,7 +337,7 @@ export default function Account() {
       <Screen>
         <Header />
         <View style={styles.content}>
-          <Pressable
+          <Tap
             onPress={() => router.push("/profile")}
             style={styles.profile}
           >
@@ -348,7 +348,7 @@ export default function Account() {
                 <Image
                   source={{ uri: absoluteUrl(user.avatarUrl) }}
                   style={styles.avatarImage}
-                />
+                 transition={220}/>
               ) : (
                 <UserRound size={30} color={theme.primary} />
               )}
@@ -361,7 +361,7 @@ export default function Account() {
                 {user.role.replace(/^./, (char) => char.toUpperCase())} account
               </Text>
             </View>
-          </Pressable>
+          </Tap>
           <View style={styles.grid}>
             <Menu
               theme={theme}
@@ -446,7 +446,7 @@ export default function Account() {
               />
             </View>
           </View>
-          <Pressable
+          <Tap
             onPress={() => void signOut()}
             style={[
               styles.signOut,
@@ -457,7 +457,7 @@ export default function Account() {
             <Text style={{ color: "#b64c3e", fontWeight: "800" }}>
               Sign out of account
             </Text>
-          </Pressable>
+          </Tap>
         </View>
       </Screen>
     );
@@ -471,14 +471,14 @@ export default function Account() {
       <View style={styles.content}>
         {onboarding === "signup" ? (
           <View style={styles.signupHeadingRow}>
-            <Pressable
+            <Tap
               accessibilityLabel="Back to welcome"
               hitSlop={10}
               onPress={() => setOnboarding("welcome")}
               style={styles.inlineBack}
             >
               <ChevronLeft size={21} color={theme.text} />
-            </Pressable>
+            </Tap>
             <Text
               style={[
                 styles.eyebrow,
@@ -522,7 +522,7 @@ export default function Account() {
             <>
               <View style={styles.roleRow}>
                 {(["consumer", "farmer"] as const).map((value) => (
-                  <Pressable
+                  <Tap
                     key={value}
                     onPress={() => setRole(value)}
                     style={[
@@ -538,7 +538,7 @@ export default function Account() {
                     <Text style={{ color: theme.text, fontWeight: "800" }}>
                       {value === "consumer" ? "Consumer" : "Farmer"}
                     </Text>
-                  </Pressable>
+                  </Tap>
                 ))}
               </View>
               <View style={styles.nameRow}>
@@ -587,14 +587,14 @@ export default function Account() {
             {...field("password")}
           />
           {mode === "signin" ? (
-            <Pressable
+            <Tap
               onPress={() => router.push("/forgot-password" as never)}
               hitSlop={8}
             >
               <Text style={[styles.forgot, { color: theme.primary }]}>
                 Forgot password?
               </Text>
-            </Pressable>
+            </Tap>
           ) : (
             <Field
               theme={theme}
@@ -604,7 +604,7 @@ export default function Account() {
             />
           )}
           {error ? <Text style={styles.error}>{error}</Text> : null}
-          <Pressable
+          <Tap
             disabled={busy}
             onPress={() => void submit()}
             style={[
@@ -622,8 +622,8 @@ export default function Account() {
                 </Text>
               </>
             )}
-          </Pressable>
-          <Pressable
+          </Tap>
+          <Tap
             onPress={() => {
               if (mode === "signin") {
                 setMode("signup");
@@ -644,7 +644,7 @@ export default function Account() {
                 {mode === "signin" ? "Create an account" : "Sign in"}
               </Text>
             </Text>
-          </Pressable>
+          </Tap>
         </View>
       </View>
     </Screen>
@@ -775,7 +775,7 @@ function WelcomeOnboarding({
                 style={{ width: compact ? 108 : 118, height: 34 }}
                 contentFit="contain"
                 contentPosition="left center"
-              />
+               transition={220}/>
               <View
                 style={{
                   flex: 1,
@@ -807,7 +807,7 @@ function WelcomeOnboarding({
               >
                 1 of 4
               </Text>
-              <Pressable
+              <Tap
                 accessibilityLabel={dark ? "Use light theme" : "Use dark theme"}
                 onPress={() => setDark(!dark)}
                 style={[
@@ -825,7 +825,7 @@ function WelcomeOnboarding({
                 ) : (
                   <Moon size={17} color={theme.primary} />
                 )}
-              </Pressable>
+              </Tap>
             </View>
             <View
               style={{
@@ -878,7 +878,7 @@ function WelcomeOnboarding({
                 Discover today&apos;s harvest from trusted farms nearby, order
                 practical quantities, and track every item to handover.
               </Text>
-              <Pressable
+              <Tap
                 onPress={advance}
                 style={{
                   height: compact ? 50 : 54,
@@ -898,8 +898,8 @@ function WelcomeOnboarding({
                 >
                   Get started
                 </Text>
-              </Pressable>
-              <Pressable
+              </Tap>
+              <Tap
                 onPress={onSignIn}
                 style={{
                   minHeight: 46,
@@ -916,7 +916,7 @@ function WelcomeOnboarding({
                 >
                   I already have an account
                 </Text>
-              </Pressable>
+              </Tap>
             </View>
           </View>
         </SafeAreaView>
@@ -965,7 +965,7 @@ function Progress({ theme, step }: { theme: any; step: number }) {
           source={require("@/assets/images/harvestnearu-logo.png")}
           style={styles.progressLogo}
           contentFit="contain"
-        />
+         transition={220}/>
         <View style={styles.progressSteps}>
           {[1, 2, 3, 4].map((value) => (
             <View
@@ -1020,7 +1020,7 @@ function AmaraGuide({
         style={guideStyles.image}
         contentFit="cover"
         contentPosition={{ left: "50%", top: "20%" }}
-      />
+       transition={220}/>
       <View style={guideStyles.copy}>
         <Text style={[guideStyles.label, { color: theme.primary }]}>
           AMARA’S GUIDE
@@ -1045,7 +1045,7 @@ function Primary({
   disabled?: boolean;
 }) {
   return (
-    <Pressable
+    <Tap
       disabled={busy || disabled}
       onPress={onPress}
       style={[
@@ -1062,7 +1062,7 @@ function Primary({
           {label}
         </Text>
       )}
-    </Pressable>
+    </Tap>
   );
 }
 function ChevronLeft({ color }: { size?: number; color?: string }) {
@@ -1081,7 +1081,7 @@ function GoogleButton({
 }) {
   return (
     <>
-      <Pressable
+      <Tap
         disabled={busy}
         onPress={onPress}
         style={[
@@ -1096,13 +1096,13 @@ function GoogleButton({
           source={require("@/assets/images/google-g.png")}
           style={styles.googleLogo}
           contentFit="contain"
-        />
+         transition={220}/>
         <Text
           style={[styles.googleText, { color: dark ? "#e3e3e3" : "#1f1f1f" }]}
         >
           Continue with Google
         </Text>
-      </Pressable>
+      </Tap>
       <View
         style={{
           marginVertical: 16,
@@ -1148,7 +1148,7 @@ function Field({
           ]}
         />
         {secureTextEntry ? (
-          <Pressable
+          <Tap
             accessibilityLabel={visible ? "Hide password" : "Show password"}
             hitSlop={10}
             onPress={() => setVisible((value) => !value)}
@@ -1159,7 +1159,7 @@ function Field({
             ) : (
               <Eye size={19} color={theme.muted} />
             )}
-          </Pressable>
+          </Tap>
         ) : null}
       </View>
     </View>
@@ -1177,7 +1177,7 @@ function Menu({
   onPress: () => void;
 }) {
   return (
-    <Pressable
+    <Tap
       onPress={onPress}
       style={({ pressed }) => [
         styles.menu,
@@ -1192,7 +1192,7 @@ function Menu({
         {icon}
       </View>
       <Text style={[styles.menuText, { color: theme.text }]}>{title}</Text>
-    </Pressable>
+    </Tap>
   );
 }
 const guideStyles = StyleSheet.create({

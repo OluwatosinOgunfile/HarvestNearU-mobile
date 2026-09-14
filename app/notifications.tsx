@@ -1,7 +1,8 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Bell, ChevronLeft, PackageCheck } from 'lucide-react-native';
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { Tap } from '@/components/tap';
 import { Screen } from '@/components/screen';
 import { Text } from '@/components/typography';
 import { useApp } from '@/context/app-context';
@@ -25,8 +26,8 @@ export default function Notifications() {
     if(route)router.push(route as never);
   }
   return <Screen refreshing={loading} onRefresh={load}>
-    <View style={styles.header}><Pressable onPress={()=>router.canGoBack()?router.back():router.replace('/')} style={[styles.back,{borderColor:theme.border,backgroundColor:theme.surface}]}><ChevronLeft size={22} color={theme.text}/></Pressable><View><Text style={[styles.title,{color:theme.text}]}>Notifications</Text><Text style={{color:theme.muted}}>{items.length} unread updates</Text></View></View>
-    <View style={styles.content}>{error?<Text style={styles.error}>{error}</Text>:null}{!user?<Empty theme={theme} title="Sign in for updates" text="Order, payment, delivery, and farm notifications will appear here."/>:loading?<ActivityIndicator color={theme.primary} style={{marginTop:70}}/>:items.length?items.map(item=><Pressable key={item.id} onPress={()=>void open(item)} style={[styles.item,{backgroundColor:theme.surface,borderColor:theme.primary}]}><View style={[styles.icon,{backgroundColor:theme.surfaceAlt}]}>{item.type==='order'?<PackageCheck size={20} color={theme.primary}/>:<Bell size={20} color={theme.primary}/>}</View><View style={{flex:1}}><Text style={[styles.itemTitle,{color:theme.text}]}>{item.title}</Text><Text style={[styles.message,{color:theme.muted}]}>{item.message}</Text><Text style={[styles.date,{color:theme.muted}]}>{new Date(item.created_at).toLocaleString('en-NG')}</Text></View><View style={[styles.dot,{backgroundColor:theme.primary}]}/></Pressable>):<Empty theme={theme} title="You are all caught up" text="New order, payment, farm, and delivery updates will appear here."/>}</View>
+    <View style={styles.header}><Tap onPress={()=>router.canGoBack()?router.back():router.replace('/')} style={[styles.back,{borderColor:theme.border,backgroundColor:theme.surface}]}><ChevronLeft size={22} color={theme.text}/></Tap><View><Text style={[styles.title,{color:theme.text}]}>Notifications</Text><Text style={{color:theme.muted}}>{items.length} unread updates</Text></View></View>
+    <View style={styles.content}>{error?<Text style={styles.error}>{error}</Text>:null}{!user?<Empty theme={theme} title="Sign in for updates" text="Order, payment, delivery, and farm notifications will appear here."/>:loading?<ActivityIndicator color={theme.primary} style={{marginTop:70}}/>:items.length?items.map(item=><Tap key={item.id} onPress={()=>void open(item)} style={[styles.item,{backgroundColor:theme.surface,borderColor:theme.primary}]}><View style={[styles.icon,{backgroundColor:theme.surfaceAlt}]}>{item.type==='order'?<PackageCheck size={20} color={theme.primary}/>:<Bell size={20} color={theme.primary}/>}</View><View style={{flex:1}}><Text style={[styles.itemTitle,{color:theme.text}]}>{item.title}</Text><Text style={[styles.message,{color:theme.muted}]}>{item.message}</Text><Text style={[styles.date,{color:theme.muted}]}>{new Date(item.created_at).toLocaleString('en-NG')}</Text></View><View style={[styles.dot,{backgroundColor:theme.primary}]}/></Tap>):<Empty theme={theme} title="You are all caught up" text="New order, payment, farm, and delivery updates will appear here."/>}</View>
   </Screen>;
 }
 function Empty({theme,title,text}:{theme:any;title:string;text:string}){return <View style={[styles.empty,{backgroundColor:theme.surface,borderColor:theme.border}]}><View style={[styles.emptyIcon,{backgroundColor:theme.surfaceAlt}]}><Bell size={31} color={theme.primary}/></View><Text style={[styles.emptyTitle,{color:theme.text}]}>{title}</Text><Text style={[styles.emptyText,{color:theme.muted}]}>{text}</Text></View>}

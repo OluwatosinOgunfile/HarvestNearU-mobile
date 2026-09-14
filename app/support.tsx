@@ -12,8 +12,9 @@ import {
   Star,
 } from "lucide-react-native";
 import { useCallback, useState } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
+import { ActivityIndicator, StyleSheet, View } from "react-native";
 
+import { Tap } from "@/components/tap";
 import { Screen } from "@/components/screen";
 import { Text, TextInput } from "@/components/typography";
 import { useApp } from "@/context/app-context";
@@ -133,7 +134,7 @@ export default function Support() {
   return (
     <Screen refreshing={loading} onRefresh={load}>
       <View style={styles.header}>
-        <Pressable
+        <Tap
           onPress={() => router.back()}
           style={[
             styles.back,
@@ -141,7 +142,7 @@ export default function Support() {
           ]}
         >
           <ChevronLeft size={22} color={theme.text} />
-        </Pressable>
+        </Tap>
         <View>
           <Text style={[styles.eyebrow, { color: theme.primary }]}>
             PERSONAL SUPPORT
@@ -169,10 +170,10 @@ export default function Support() {
           </View>
         </View>
         <View style={[styles.aiCard,{backgroundColor:theme.surface,borderColor:theme.border}]}>
-          <View style={styles.amaraHead}><Image source={require('@/assets/images/amara-avatar.png')} style={styles.amaraAvatar}/><View style={{flex:1}}><Text style={[styles.cardTitle,{color:theme.text}]}>Ask Amara</Text><Text style={[styles.amaraRole,{color:theme.primary}]}>HARVESTNEARU GUIDE</Text></View></View>
+          <View style={styles.amaraHead}><Image source={require('@/assets/images/amara-avatar.png')} style={styles.amaraAvatar} transition={220}/><View style={{flex:1}}><Text style={[styles.cardTitle,{color:theme.text}]}>Ask Amara</Text><Text style={[styles.amaraRole,{color:theme.primary}]}>HARVESTNEARU GUIDE</Text></View></View>
           <Text style={{color:theme.muted,lineHeight:20}}>Amara finds answers grounded in verified Help Centre guidance. Create a ticket if your situation is not covered.</Text>
           <TextInput value={question} onChangeText={setQuestion} placeholder="Ask about delivery, payments, orders, or payouts" placeholderTextColor={theme.muted} style={[styles.aiInput,{color:theme.text,borderColor:theme.border,backgroundColor:theme.background}]}/>
-          <Pressable disabled={asking||!question.trim()} onPress={()=>void ask()} style={[styles.aiButton,{backgroundColor:theme.primary,opacity:question.trim()?1:.5}]}>{asking?<ActivityIndicator color={theme.primaryText}/>:<><Sparkles size={16} color={theme.primaryText}/><Text style={{color:theme.primaryText,fontWeight:"900"}}>Find an answer</Text></>}</Pressable>
+          <Tap disabled={asking||!question.trim()} onPress={()=>void ask()} style={[styles.aiButton,{backgroundColor:theme.primary,opacity:question.trim()?1:.5}]}>{asking?<ActivityIndicator color={theme.primaryText}/>:<><Sparkles size={16} color={theme.primaryText}/><Text style={{color:theme.primaryText,fontWeight:"900"}}>Find an answer</Text></>}</Tap>
           {answer?<View style={[styles.aiAnswer,{backgroundColor:theme.surfaceAlt}]}><Text style={{color:theme.text,lineHeight:21}}>{answer.answer}</Text><Text style={[styles.aiSource,{color:theme.primary}]}>Source: {answer.sourceTitle}</Text></View>:null}
         </View>
         {user ? (
@@ -191,7 +192,7 @@ export default function Support() {
             <Text style={[styles.label, { color: theme.text }]}>
               Issue category
             </Text>
-            <Pressable
+            <Tap
               accessibilityRole="button"
               accessibilityState={{ expanded: categoryOpen }}
               onPress={() => setCategoryOpen((value) => !value)}
@@ -207,7 +208,7 @@ export default function Support() {
                 {label(category)}
               </Text>
               <ChevronDown size={19} color={theme.primary} />
-            </Pressable>
+            </Tap>
             {categoryOpen ? (
               <View
                 style={[
@@ -216,7 +217,7 @@ export default function Support() {
                 ]}
               >
                 {categories.map((value) => (
-                  <Pressable
+                  <Tap
                     key={value}
                     onPress={() => {
                       setCategory(value);
@@ -240,7 +241,7 @@ export default function Support() {
                     {category === value ? (
                       <CheckCircle2 size={17} color={theme.primary} />
                     ) : null}
-                  </Pressable>
+                  </Tap>
                 ))}
               </View>
             ) : null}
@@ -251,7 +252,7 @@ export default function Support() {
                 </Text>
                 <View style={styles.stars}>
                   {[1, 2, 3, 4, 5].map((value) => (
-                    <Pressable
+                    <Tap
                       accessibilityLabel={`${value} stars`}
                       key={value}
                       onPress={() => setRating(value)}
@@ -261,7 +262,7 @@ export default function Support() {
                         color="#d99b13"
                         fill={value <= rating ? "#d99b13" : "transparent"}
                       />
-                    </Pressable>
+                    </Tap>
                   ))}
                 </View>
               </>
@@ -303,7 +304,7 @@ export default function Support() {
                 <Text style={{ color: theme.text, flex: 1 }}>{success}</Text>
               </View>
             ) : null}
-            <Pressable
+            <Tap
               disabled={
                 busy ||
                 !subject.trim() ||
@@ -335,7 +336,7 @@ export default function Support() {
                   </Text>
                 </>
               )}
-            </Pressable>
+            </Tap>
           </View>
         ) : (
           <Text
@@ -357,7 +358,7 @@ export default function Support() {
           <ActivityIndicator color={theme.primary} style={{ marginTop: 30 }} />
         ) : tickets.length ? (
           tickets.map((ticket) => (
-            <Pressable
+            <Tap
               key={ticket.id}
               accessibilityRole="button"
               accessibilityLabel={`Open support ticket ${ticket.ticket_number}`}
@@ -399,7 +400,7 @@ export default function Support() {
                   {ticket.messages.at(-1)?.body}
                 </Text>
               ) : null}
-            </Pressable>
+            </Tap>
           ))
         ) : (
           <View

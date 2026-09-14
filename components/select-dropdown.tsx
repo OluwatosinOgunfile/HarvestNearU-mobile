@@ -1,8 +1,9 @@
 import { Check, ChevronDown } from 'lucide-react-native';
 import { useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet } from 'react-native';
+import { Modal, ScrollView, StyleSheet } from 'react-native';
 import { Text } from './typography';
 import { useApp } from '@/context/app-context';
+import { Tap } from '@/components/tap';
 
 type Option = { label: string; value: string };
 
@@ -12,22 +13,22 @@ export function SelectDropdown({ label, value, options, onChange, disabled = fal
   const selected = options.find((option) => option.value === value);
   return <>
     <Text style={[styles.label, { color: theme.muted }]}>{label}</Text>
-    <Pressable accessibilityRole="button" accessibilityState={{ expanded: open, disabled }} disabled={disabled} onPress={() => setOpen(true)} style={[styles.field, { backgroundColor: theme.surface, borderColor: open ? theme.primary : theme.border }, disabled && styles.disabled]}>
+    <Tap accessibilityRole="button" accessibilityState={{ expanded: open, disabled }} disabled={disabled} onPress={() => setOpen(true)} style={[styles.field, { backgroundColor: theme.surface, borderColor: open ? theme.primary : theme.border }, disabled && styles.disabled]}>
       <Text numberOfLines={1} style={[styles.value, { color: selected ? theme.text : theme.muted }]}>{selected?.label || `Select ${label.toLowerCase()}`}</Text>
       <ChevronDown size={19} color={theme.primary} />
-    </Pressable>
+    </Tap>
     <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
-      <Pressable style={styles.backdrop} onPress={() => setOpen(false)}>
-        <Pressable onPress={(event) => event.stopPropagation()} style={[styles.menu, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+      <Tap style={styles.backdrop} onPress={() => setOpen(false)}>
+        <Tap onPress={(event) => event.stopPropagation()} style={[styles.menu, { backgroundColor: theme.surface, borderColor: theme.border }]}>
           <Text style={[styles.menuTitle, { color: theme.text }]}>{label}</Text>
           <ScrollView style={[styles.list, { borderTopColor: theme.border }]}>
-            {options.map((option) => <Pressable key={option.value} onPress={() => { onChange(option.value); setOpen(false); }} style={[styles.option, { borderBottomColor: theme.border }, option.value === value && { backgroundColor: theme.surfaceAlt }]}>
+            {options.map((option) => <Tap key={option.value} onPress={() => { onChange(option.value); setOpen(false); }} style={[styles.option, { borderBottomColor: theme.border }, option.value === value && { backgroundColor: theme.surfaceAlt }]}>
               <Text style={[styles.optionText, { color: theme.text }]}>{option.label}</Text>
               {option.value === value ? <Check size={18} color={theme.primary} /> : null}
-            </Pressable>)}
+            </Tap>)}
           </ScrollView>
-        </Pressable>
-      </Pressable>
+        </Tap>
+      </Tap>
     </Modal>
   </>;
 }

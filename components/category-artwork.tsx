@@ -82,7 +82,7 @@ export function CategoryArtwork({ category, size }: { category: string; size: nu
           { translateY: -topOffset },
         ],
       }}
-    />
+     transition={220}/>
   </View>;
 }
 

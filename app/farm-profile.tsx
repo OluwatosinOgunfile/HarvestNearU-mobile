@@ -3,11 +3,11 @@ import { ChevronLeft, Save, Store } from "lucide-react-native";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Pressable,
   StyleSheet,
   Switch,
   View,
 } from "react-native";
+import { Tap } from "@/components/tap";
 import { Screen } from "@/components/screen";
 import { Text, TextInput } from "@/components/typography";
 import { useApp } from "@/context/app-context";
@@ -119,13 +119,13 @@ export default function FarmProfile() {
   return (
     <Screen>
       <View style={styles.header}>
-        <Pressable
+        <Tap
           accessibilityLabel="Go back"
           onPress={() => router.back()}
           style={[styles.back, { borderColor: theme.border }]}
         >
           <ChevronLeft size={21} color={theme.text} />
-        </Pressable>
+        </Tap>
         <View>
           <Text style={[styles.eyebrow, { color: theme.primary }]}>
             FARM PROFILE
@@ -250,7 +250,7 @@ export default function FarmProfile() {
                 {message}
               </Text>
             ) : null}
-            <Pressable
+            <Tap
               disabled={saving}
               onPress={() => void save()}
               style={[styles.save, { backgroundColor: theme.primary }]}
@@ -265,7 +265,7 @@ export default function FarmProfile() {
                   </Text>
                 </>
               )}
-            </Pressable>
+            </Tap>
           </View>
         </View>
       ) : (

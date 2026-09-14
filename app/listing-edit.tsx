@@ -3,7 +3,8 @@ import * as ImagePicker from "expo-image-picker";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Camera, ChevronLeft, Plus, Save } from "lucide-react-native";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
+import { ActivityIndicator, StyleSheet, View } from "react-native";
+import { Tap } from "@/components/tap";
 import { DEFAULT_FEE_POLICY, FeeNotice, type FeePolicy } from "@/components/fee-notice";
 import { Screen } from "@/components/screen";
 import { SelectDropdown } from "@/components/select-dropdown";
@@ -187,13 +188,13 @@ export default function ListingEdit() {
   return (
     <Screen>
       <View style={styles.header}>
-        <Pressable
+        <Tap
           accessibilityLabel="Go back"
           onPress={() => router.back()}
           style={[styles.back, { borderColor: theme.border }]}
         >
           <ChevronLeft size={21} color={theme.text} />
-        </Pressable>
+        </Tap>
         <View>
           <Text style={[styles.eyebrow, { color: theme.primary }]}>
             EDIT HARVEST
@@ -217,7 +218,7 @@ export default function ListingEdit() {
             }))}
             onChange={set("categoryId")}
           />
-          <Pressable
+          <Tap
             onPress={() => setShowCategory((value) => !value)}
             style={styles.categoryToggle}
           >
@@ -225,7 +226,7 @@ export default function ListingEdit() {
             <Text style={{ color: theme.primary, fontWeight: "800" }}>
               Category not listed?
             </Text>
-          </Pressable>
+          </Tap>
           {showCategory ? (
             <View
               style={[
@@ -248,7 +249,7 @@ export default function ListingEdit() {
                 value={categoryDescription}
                 onChangeText={setCategoryDescription}
               />
-              <Pressable
+              <Tap
                 disabled={saving}
                 onPress={() => void createCategory()}
                 style={[styles.smallButton, { backgroundColor: theme.primary }]}
@@ -256,7 +257,7 @@ export default function ListingEdit() {
                 <Text style={{ color: theme.primaryText, fontWeight: "800" }}>
                   Add category
                 </Text>
-              </Pressable>
+              </Tap>
             </View>
           ) : null}
           <View
@@ -331,7 +332,7 @@ export default function ListingEdit() {
               ]}
               onChange={set("status")}
             />
-            <Pressable
+            <Tap
               onPress={() => void chooseImage()}
               style={[
                 styles.photo,
@@ -346,7 +347,7 @@ export default function ListingEdit() {
                   image ? { uri: image.uri } : { uri: listing.image_url || "" }
                 }
                 style={styles.preview}
-              />
+               transition={220}/>
               <View style={{ flex: 1 }}>
                 <Text style={{ color: theme.text, fontWeight: "800" }}>
                   Change produce picture
@@ -356,8 +357,8 @@ export default function ListingEdit() {
                 </Text>
               </View>
               <Camera size={20} color={theme.primary} />
-            </Pressable>
-            <Pressable
+            </Tap>
+            <Tap
               disabled={saving}
               onPress={() => void save()}
               style={[
@@ -375,7 +376,7 @@ export default function ListingEdit() {
                   </Text>
                 </>
               )}
-            </Pressable>
+            </Tap>
           </View>
         </View>
       ) : (

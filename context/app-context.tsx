@@ -2,10 +2,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import * as Device from 'expo-device';
 import * as Location from 'expo-location';
+import * as Haptics from 'expo-haptics';
 import * as Notifications from 'expo-notifications';
 import { ShoppingBag } from 'lucide-react-native';
 import { PropsWithChildren, createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Platform, StyleSheet, View, useColorScheme } from 'react-native';
+import { AccessibilityInfo, Animated, Platform, StyleSheet, View, useColorScheme } from 'react-native';
 import { Text } from '@/components/typography';
 import { api, clearSessionToken, saveSessionToken } from '@/lib/api';
 import { themes } from '@/lib/theme';
@@ -41,6 +42,7 @@ export function AppProvider({ children }: PropsWithChildren) {
   const [pushToken,setPushToken] = useState<string|null>(null);
   const [cartNotice,setCartNotice] = useState<{message:string;key:number}|null>(null);
   const noticeProgress = useRef(new Animated.Value(0)).current;
+  const [reduceMotion,setReduceMotion] = useState(false);
   const [loading,setLoading] = useState(true);
   const [error,setError] = useState('');
 
@@ -101,6 +103,8 @@ export function AppProvider({ children }: PropsWithChildren) {
     if(currentQuantity>=product.stock)return;
     setCart(current=>({...current,[product.id]:Math.min(product.stock,(current[product.id]||0)+1)}));
     setCartNotice({message:`${product.name} added to your basket`,key:Date.now()});
+    // A short tick confirms the tap landed even when the toast is off-screen or unread.
+    if(Platform.OS!=='web')void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(()=>undefined);
   };
   const updateCart=(id:string,delta:number)=>setCart(current=>{ const product=products.find(item=>item.id===id); const next=Math.max(0,Math.min(product?.stock||0,(current[id]||0)+delta)); const value={...current}; if(next)value[id]=next;else delete value[id];return value; });
   const signIn=async(identifier:string,password:string)=>{ const result=await api<{user:User;sessionToken?:string}>('/api/auth/signin',{method:'POST',body:JSON.stringify({identifier,password})});await saveSessionToken(result.sessionToken);await load();await loadSession(); };
@@ -116,11 +120,11 @@ export function AppProvider({ children }: PropsWithChildren) {
     noticeProgress.stopAnimation();
     noticeProgress.setValue(0);
     Animated.sequence([
-      Animated.spring(noticeProgress,{toValue:1,useNativeDriver:true,damping:18,stiffness:210,mass:.8}),
+      reduceMotion?Animated.timing(noticeProgress,{toValue:1,duration:1,useNativeDriver:true}):Animated.spring(noticeProgress,{toValue:1,useNativeDriver:true,damping:18,stiffness:210,mass:.8}),
       Animated.delay(2200),
       Animated.timing(noticeProgress,{toValue:0,duration:180,useNativeDriver:true}),
     ]).start(({finished})=>{if(finished)setCartNotice(null)});
-  },[cartNotice,noticeProgress]);
+  },[cartNotice,noticeProgress,reduceMotion]);
   return <AppContext.Provider value={value}><View style={styles.app}>{children}</View>{cartNotice?<Animated.View key={cartNotice.key} accessibilityLiveRegion="polite" pointerEvents="none" style={[styles.toast,{backgroundColor:theme.surface,borderColor:theme.border,opacity:noticeProgress,transform:[{translateY:noticeProgress.interpolate({inputRange:[0,1],outputRange:[-18,0]})}]}]}><View style={[styles.toastIcon,{backgroundColor:theme.primary}]}><ShoppingBag size={17} color={theme.primaryText}/></View><View style={styles.toastCopy}><Text style={[styles.toastTitle,{color:theme.text}]}>Added to basket</Text><Text numberOfLines={1} style={[styles.toastText,{color:theme.muted}]}>{cartNotice.message}</Text></View></Animated.View>:null}</AppContext.Provider>;
 }
 export function useApp(){const value=useContext(AppContext);if(!value)throw new Error('AppProvider is missing');return value;}

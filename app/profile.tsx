@@ -12,7 +12,8 @@ import {
   UserRound,
 } from "lucide-react-native";
 import { useCallback, useState } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
+import { ActivityIndicator, StyleSheet, View } from "react-native";
+import { Tap } from "@/components/tap";
 import { Screen } from "@/components/screen";
 import { Text, TextInput } from "@/components/typography";
 import { useApp } from "@/context/app-context";
@@ -161,13 +162,13 @@ export default function UserProfile() {
   return (
     <Screen refreshing={loading} onRefresh={load}>
       <View style={styles.header}>
-        <Pressable
+        <Tap
           accessibilityLabel="Go back"
           onPress={() => router.back()}
           style={[styles.back, { borderColor: theme.border }]}
         >
           <ChevronLeft size={22} color={theme.text} />
-        </Pressable>
+        </Tap>
         <View>
           <Text style={[styles.eyebrow, { color: theme.primary }]}>
             YOUR ACCOUNT
@@ -193,7 +194,7 @@ export default function UserProfile() {
                   source={{ uri: absoluteUrl(data.user.avatar_url) }}
                   style={styles.avatarImage}
                   contentFit="cover"
-                />
+                 transition={220}/>
               ) : (
                 <UserRound size={42} color={theme.primary} />
               )}
@@ -207,7 +208,7 @@ export default function UserProfile() {
                 account
               </Text>
             </View>
-            <Pressable
+            <Tap
               accessibilityLabel="Change profile picture"
               disabled={uploading}
               onPress={() => void choosePicture()}
@@ -218,7 +219,7 @@ export default function UserProfile() {
               ) : (
                 <Camera size={19} color={theme.primaryText} />
               )}
-            </Pressable>
+            </Tap>
           </View>
           {message ? (
             <Text
@@ -310,7 +311,7 @@ export default function UserProfile() {
               value={form.phone}
               onChangeText={change("phone")}
             />
-            <Pressable
+            <Tap
               disabled={saving}
               onPress={() => void save()}
               style={[styles.save, { backgroundColor: theme.primary }]}
@@ -325,9 +326,9 @@ export default function UserProfile() {
                   </Text>
                 </>
               )}
-            </Pressable>
+            </Tap>
           </View>
-          <Pressable
+          <Tap
             onPress={() => router.push("/location")}
             style={[
               styles.location,
@@ -345,9 +346,9 @@ export default function UserProfile() {
                   : "Add your home delivery address"}
               </Text>
             </View>
-          </Pressable>
+          </Tap>
           {data?.user.role === "consumer" ? (
-            <Pressable
+            <Tap
               onPress={() => router.push("/farm-new" as never)}
               style={[
                 styles.upgrade,
@@ -372,10 +373,10 @@ export default function UserProfile() {
                 </Text>
               </View>
               <Plus size={20} color={theme.primary} />
-            </Pressable>
+            </Tap>
           ) : null}
           {data?.user.role === "farmer" ? (
-            <Pressable
+            <Tap
               onPress={() => router.push("/farm-new" as never)}
               style={[
                 styles.location,
@@ -388,7 +389,7 @@ export default function UserProfile() {
               >
                 Add another farm
               </Text>
-            </Pressable>
+            </Tap>
           ) : null}
           {data?.farms?.length ? (
             <View
@@ -403,7 +404,7 @@ export default function UserProfile() {
                 text="Your farms"
               />
               {data.farms.map((farm) => (
-                <Pressable
+                <Tap
                   key={farm.id}
                   onPress={() =>
                     router.push({
@@ -432,7 +433,7 @@ export default function UserProfile() {
                       {farm.review_count || 0} reviews
                     </Text>
                   </View>
-                </Pressable>
+                </Tap>
               ))}
             </View>
           ) : null}

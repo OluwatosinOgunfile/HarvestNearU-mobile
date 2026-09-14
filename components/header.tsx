@@ -1,10 +1,11 @@
 import { Image } from 'expo-image';
 import { Bell, Moon, Search, ShoppingBag, Sun } from 'lucide-react-native';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { Text } from './typography';
 import { useFocusEffect, usePathname, useRouter } from 'expo-router';
 import { useCallback } from 'react';
 import { useApp } from '@/context/app-context';
+import { Tap } from '@/components/tap';
 
 export function Header({ title, home = false, onSearch, showBasket = true }: { title?: string; home?: boolean; onSearch?: () => void; showBasket?: boolean }) {
   const { theme, cartCount, notificationCount, refreshNotifications, user, dark, setDark } = useApp();
@@ -13,11 +14,11 @@ export function Header({ title, home = false, onSearch, showBasket = true }: { t
   const basketVisible = showBasket && !['/orders', '/workspace', '/account'].includes(pathname);
   useFocusEffect(useCallback(() => { if (home) void refreshNotifications(); }, [home, refreshNotifications]));
   return <View style={styles.row}>
-    <Image source={require('@/assets/images/harvestnearu-logo.png')} style={styles.logo} contentFit="contain" />
+    <Image source={require('@/assets/images/harvestnearu-logo.png')} style={styles.logo} contentFit="contain"  transition={220}/>
     <View style={styles.actions}>
-      {user && home ? <Pressable accessibilityLabel={`Notifications${notificationCount ? `, ${notificationCount} unread` : ''}`} onPress={() => router.push('/notifications')} style={[styles.icon, { borderColor: theme.border, backgroundColor: theme.surface }]}><Bell size={21} color={theme.primary} />{notificationCount > 0 && <Text style={styles.badge}>{notificationCount > 99 ? '99+' : notificationCount}</Text>}</Pressable> : !user ? <Pressable accessibilityLabel={dark ? 'Use light mode' : 'Use dark mode'} onPress={() => setDark(!dark)} style={[styles.icon, { borderColor: theme.border, backgroundColor: theme.surface }]}>{dark ? <Sun size={21} color={theme.primary} /> : <Moon size={21} color={theme.primary} />}</Pressable> : null}
-      {onSearch ? <Pressable accessibilityLabel="Search the market" onPress={onSearch} style={[styles.icon, { borderColor: theme.border, backgroundColor: theme.surface }]}><Search size={21} color={theme.primary} /></Pressable> : null}
-      {!home && basketVisible ? <Pressable accessibilityLabel="Open basket" onPress={() => router.push('/basket')} style={[styles.icon, { backgroundColor: theme.primary }]}><ShoppingBag size={21} color={theme.primaryText} />{cartCount > 0 && <Text style={styles.badge}>{cartCount}</Text>}</Pressable> : null}
+      {user && home ? <Tap accessibilityLabel={`Notifications${notificationCount ? `, ${notificationCount} unread` : ''}`} onPress={() => router.push('/notifications')} style={[styles.icon, { borderColor: theme.border, backgroundColor: theme.surface }]}><Bell size={21} color={theme.primary} />{notificationCount > 0 && <Text style={styles.badge}>{notificationCount > 99 ? '99+' : notificationCount}</Text>}</Tap> : !user ? <Tap accessibilityLabel={dark ? 'Use light mode' : 'Use dark mode'} onPress={() => setDark(!dark)} style={[styles.icon, { borderColor: theme.border, backgroundColor: theme.surface }]}>{dark ? <Sun size={21} color={theme.primary} /> : <Moon size={21} color={theme.primary} />}</Tap> : null}
+      {onSearch ? <Tap accessibilityLabel="Search the market" onPress={onSearch} style={[styles.icon, { borderColor: theme.border, backgroundColor: theme.surface }]}><Search size={21} color={theme.primary} /></Tap> : null}
+      {!home && basketVisible ? <Tap accessibilityLabel="Open basket" onPress={() => router.push('/basket')} style={[styles.icon, { backgroundColor: theme.primary }]}><ShoppingBag size={21} color={theme.primaryText} />{cartCount > 0 && <Text style={styles.badge}>{cartCount}</Text>}</Tap> : null}
     </View>
     {title && <Text style={[styles.title, { color: theme.text }]}>{title}</Text>}
   </View>;

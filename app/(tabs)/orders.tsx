@@ -20,10 +20,10 @@ import {
   ActivityIndicator,
   Alert,
   Modal,
-  Pressable,
   StyleSheet,
   View,
 } from "react-native";
+import { Tap } from "@/components/tap";
 import { Text, TextInput } from "@/components/typography";
 import { Header } from "@/components/header";
 import { Screen } from "@/components/screen";
@@ -296,7 +296,7 @@ function OrderTab({
   onPress: () => void;
 }) {
   return (
-    <Pressable
+    <Tap
       accessibilityRole="tab"
       accessibilityState={{ selected: active }}
       onPress={onPress}
@@ -326,7 +326,7 @@ function OrderTab({
           {count}
         </Text>
       </View>
-    </Pressable>
+    </Tap>
   );
 }
 
@@ -494,7 +494,7 @@ function OrderCard({
         { backgroundColor: theme.surface, borderColor: theme.border },
       ]}
     >
-      <Pressable
+      <Tap
         onPress={onToggle}
         accessibilityRole="button"
         accessibilityState={{ expanded: open }}
@@ -520,7 +520,7 @@ function OrderCard({
             <ChevronDown size={19} color={theme.text} />
           )}
         </View>
-      </Pressable>
+      </Tap>
       {open ? (
         <View style={[styles.details, { borderTopColor: theme.border }]}>
           {pending ? (
@@ -577,7 +577,7 @@ function OrderCard({
                   source={{ uri: absoluteUrl(item.image) }}
                   style={styles.image}
                   contentFit="cover"
-                />
+                 transition={220}/>
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.itemName, { color: theme.text }]}>
                     {titleCase(item.name)}
@@ -589,7 +589,7 @@ function OrderCard({
                     {label(item.status)}
                   </Text>
                   {canReceive ? (
-                    <Pressable
+                    <Tap
                       disabled={busy === item.id}
                       onPress={() => void receive(item)}
                       style={[styles.receive, { borderColor: theme.primary }]}
@@ -603,7 +603,7 @@ function OrderCard({
                           I received this product
                         </Text>
                       )}
-                    </Pressable>
+                    </Tap>
                   ) : null}
                 </View>
                 <Text style={[styles.itemPrice, { color: theme.text }]}>
@@ -615,7 +615,7 @@ function OrderCard({
           {order.fulfilment_method === "farmer_delivery" ? (
             <View style={styles.chatList}>
               <Text style={[styles.sectionLabel, { color: theme.muted }]}>ARRANGE WITH FARMER</Text>
-              {order.farms.map((farm) => <Pressable key={farm.id} onPress={() => router.push({ pathname: "/order-chat", params: { orderId: order.id, farmId: farm.id } } as never)} style={[styles.chatButton, { borderColor: theme.primary }]}><MessageCircle size={17} color={theme.primary}/><Text style={{ color: theme.primary, fontWeight: "900" }}>Chat with {farm.name}</Text></Pressable>)}
+              {order.farms.map((farm) => <Tap key={farm.id} onPress={() => router.push({ pathname: "/order-chat", params: { orderId: order.id, farmId: farm.id } } as never)} style={[styles.chatButton, { borderColor: theme.primary }]}><MessageCircle size={17} color={theme.primary}/><Text style={{ color: theme.primary, fontWeight: "900" }}>Chat with {farm.name}</Text></Tap>)}
             </View>
           ) : null}
           {order.tracking ? (
@@ -714,7 +714,7 @@ function OrderCard({
                 Rate farms you received from
               </Text>
               {eligibleFarms.map((farm) => (
-                <Pressable
+                <Tap
                   key={farm.id}
                   onPress={() => {
                     setRatingFarm(farm.id);
@@ -736,7 +736,7 @@ function OrderCard({
                   <Text style={{ color: theme.muted }}>
                     {farm.rating ? `${farm.rating}/5` : "Rate"}
                   </Text>
-                </Pressable>
+                </Tap>
               ))}
               {ratingFarm ? (
                 <View
@@ -744,7 +744,7 @@ function OrderCard({
                 >
                   <View style={styles.stars}>
                     {[1, 2, 3, 4, 5].map((value) => (
-                      <Pressable
+                      <Tap
                         key={value}
                         accessibilityLabel={`${value} stars`}
                         onPress={() => setRating(value)}
@@ -754,7 +754,7 @@ function OrderCard({
                           color="#d99b13"
                           fill={value <= rating ? "#d99b13" : "transparent"}
                         />
-                      </Pressable>
+                      </Tap>
                     ))}
                   </View>
                   <TextInput
@@ -837,7 +837,7 @@ function OrderCard({
                 </>
               ) : null}
               {refundMode !== "none" ? (
-                <Pressable
+                <Tap
                   disabled={busy === "cancel"}
                   onPress={() =>
                     Alert.alert(
@@ -862,7 +862,7 @@ function OrderCard({
                       Submit cancellation
                     </Text>
                   )}
-                </Pressable>
+                </Tap>
               ) : null}
             </View>
           ) : null}
@@ -897,7 +897,7 @@ function OrderCard({
           ) : null}
           <View style={styles.orderActions}>
             {!pending && !["cancelled"].includes(order.status) ? (
-              <Pressable
+              <Tap
                 onPress={() => void printReceipt()}
                 style={[styles.secondaryAction, { borderColor: theme.border }]}
               >
@@ -905,10 +905,10 @@ function OrderCard({
                 <Text style={{ color: theme.text, fontWeight: "800" }}>
                   Print receipt
                 </Text>
-              </Pressable>
+              </Tap>
             ) : null}
             {completed ? (
-              <Pressable
+              <Tap
                 onPress={onFeedback}
                 style={[styles.secondaryAction, { borderColor: theme.border }]}
               >
@@ -916,7 +916,7 @@ function OrderCard({
                 <Text style={{ color: theme.text, fontWeight: "800" }}>
                   Order feedback
                 </Text>
-              </Pressable>
+              </Tap>
             ) : null}
           </View>
         </View>
@@ -927,11 +927,11 @@ function OrderCard({
         animationType="fade"
         onRequestClose={() => setRatingFarm("")}
       >
-        <Pressable
+        <Tap
           onPress={() => setRatingFarm("")}
           style={styles.modalBackdrop}
         >
-          <Pressable
+          <Tap
             onPress={(event) => event.stopPropagation()}
             style={[
               styles.ratingModal,
@@ -957,7 +957,7 @@ function OrderCard({
             </Text>
             <View style={[styles.stars, { marginTop: 18 }]}>
               {[1, 2, 3, 4, 5].map((value) => (
-                <Pressable
+                <Tap
                   key={value}
                   accessibilityLabel={`${value} stars`}
                   onPress={() => setRating(value)}
@@ -967,7 +967,7 @@ function OrderCard({
                     color="#d99b13"
                     fill={value <= rating ? "#d99b13" : "transparent"}
                   />
-                </Pressable>
+                </Tap>
               ))}
             </View>
             <TextInput
@@ -992,13 +992,13 @@ function OrderCard({
               theme={theme}
               onPress={() => void submitRating()}
             />
-            <Pressable onPress={() => setRatingFarm("")} style={styles.later}>
+            <Tap onPress={() => setRatingFarm("")} style={styles.later}>
               <Text style={{ color: theme.muted, fontWeight: "800" }}>
                 Rate later
               </Text>
-            </Pressable>
-          </Pressable>
-        </Pressable>
+            </Tap>
+          </Tap>
+        </Tap>
       </Modal>
       <View style={[styles.orderBottom, { borderTopColor: theme.border }]}>
         <View>
@@ -1041,7 +1041,7 @@ function ActionButton({
   icon?: React.ReactNode;
 }) {
   return (
-    <Pressable
+    <Tap
       disabled={busy}
       onPress={onPress}
       style={[styles.payButton, { backgroundColor: theme.primary }]}
@@ -1056,7 +1056,7 @@ function ActionButton({
           </Text>
         </>
       )}
-    </Pressable>
+    </Tap>
   );
 }
 function Choice({
@@ -1071,7 +1071,7 @@ function Choice({
   onPress: () => void;
 }) {
   return (
-    <Pressable
+    <Tap
       onPress={onPress}
       style={[
         styles.choice,
@@ -1082,7 +1082,7 @@ function Choice({
       ]}
     >
       <Text style={{ color: theme.text, fontWeight: "800" }}>{title}</Text>
-    </Pressable>
+    </Tap>
   );
 }
 function MiniField({ theme, ...props }: { theme: any; [key: string]: any }) {
@@ -1131,14 +1131,14 @@ function Empty({
       </View>
       <Text style={[styles.emptyTitle, { color: theme.text }]}>{title}</Text>
       <Text style={[styles.emptyText, { color: theme.muted }]}>{text}</Text>
-      <Pressable
+      <Tap
         onPress={onPress}
         style={[styles.button, { backgroundColor: theme.primary }]}
       >
         <Text style={{ color: theme.primaryText, fontWeight: "800" }}>
           {action}
         </Text>
-      </Pressable>
+      </Tap>
     </View>
   );
 }

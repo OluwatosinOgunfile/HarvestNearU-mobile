@@ -1,13 +1,14 @@
 import { useRouter } from 'expo-router';
 import { BadgeCheck, Heart, MapPin, Plus, Star, Store } from 'lucide-react-native';
 import { useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { Product, useApp } from '@/context/app-context';
 import { proximityLabel, titleCase } from '@/lib/format';
 import { Money } from './money';
 import { ListingImage } from './listing-image';
 import { ProductPreview } from './product-preview';
 import { Text } from './typography';
+import { Tap } from '@/components/tap';
 
 export function ProductCard({ product, fullWidth = false, compact = false }: { product: Product; fullWidth?: boolean; compact?: boolean }) {
   const router = useRouter();
@@ -17,17 +18,17 @@ export function ProductCard({ product, fullWidth = false, compact = false }: { p
   const stockPercent = Math.max(0, Math.min(100, product.stock / restockTotal * 100));
 
   return <>
-    <Pressable onPress={() => setPreview(true)} style={[styles.card, fullWidth && styles.fullWidth, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+    <Tap onPress={() => setPreview(true)} style={[styles.card, fullWidth && styles.fullWidth, { backgroundColor: theme.surface, borderColor: theme.border }]}>
       <View style={[styles.imageWrap,compact&&styles.imageWrapCompact]}>
         <ListingImage uri={product.image} category={product.category} size={176} style={styles.image} recyclingKey={product.id} />
         <View style={styles.distance}><MapPin size={13} color="#183525" /><Text>{proximityLabel(product.distance)}</Text></View>
-        <Pressable accessibilityLabel={liked.includes(product.id) ? 'Remove from favourites' : 'Save to favourites'} onPress={(event) => {
+        <Tap accessibilityLabel={liked.includes(product.id) ? 'Remove from favourites' : 'Save to favourites'} onPress={(event) => {
           event.stopPropagation();
           if (!user) { router.push('/account'); return; }
           void toggleLike(product.id);
         }} style={styles.heart}>
           <Heart size={19} color="#284336" fill={liked.includes(product.id) ? '#6db88b' : 'transparent'} />
-        </Pressable>
+        </Tap>
       </View>
       <View style={[styles.body,compact&&styles.bodyCompact]}>
         <View style={styles.identityRow}>
@@ -36,14 +37,14 @@ export function ProductCard({ product, fullWidth = false, compact = false }: { p
             <Text numberOfLines={2} style={[styles.name,compact&&styles.nameCompact, { color: theme.text }]}>{titleCase(product.name)}</Text>
           </View>
           <View style={styles.farmIdentity}>
-            <Pressable accessibilityRole="link" accessibilityLabel={`View ${product.farmer}`} onPress={(event) => {
+            <Tap accessibilityRole="link" accessibilityLabel={`View ${product.farmer}`} onPress={(event) => {
               event.stopPropagation();
               router.push({ pathname: '/farms/[id]', params: { id: product.farmId } });
             }} style={styles.farmRow}>
               <Store size={13} color={theme.primary} />
               <Text numberOfLines={2} style={[styles.farmLink, { color: theme.primary }]}>{product.farmer}</Text>
               <BadgeCheck size={14} strokeWidth={2.4} color={theme.primary} accessibilityLabel="Verified farm" />
-            </Pressable>
+            </Tap>
             {product.reviewCount
               ? <View style={styles.rating}><Star size={15} color="#e7a81f" fill="#e7a81f" /><Text style={{ color: theme.text }}>{product.rating.toFixed(1)} ({product.reviewCount})</Text></View>
               : <View style={[styles.newFarm, { backgroundColor: theme.surfaceAlt }]}><Text style={[styles.newFarmText, { color: theme.primary }]}>NEW FARM</Text></View>}
@@ -55,12 +56,12 @@ export function ProductCard({ product, fullWidth = false, compact = false }: { p
         <Text style={[styles.stock, { color: theme.muted }]}>{product.stock} {product.unit}{product.stock === 1 ? '' : 's'} left</Text>
         <View style={[styles.priceRow, { borderTopColor: theme.border }]}>
           <View style={styles.moneyRow}><Money value={product.price} style={[styles.price, { color: theme.text }]} /><Text style={[styles.unit, { color: theme.muted }]}>/ {product.unit}</Text></View>
-          <Pressable onPress={(event) => { event.stopPropagation(); add(product); }} disabled={(cart[product.id] || 0) >= product.stock} style={[styles.add, { backgroundColor: theme.primary }]}>
+          <Tap onPress={(event) => { event.stopPropagation(); add(product); }} disabled={(cart[product.id] || 0) >= product.stock} style={[styles.add, { backgroundColor: theme.primary }]}>
             <Plus size={17} color={theme.primaryText} /><Text style={{ color: theme.primaryText, fontWeight: '800' }}>Add</Text>
-          </Pressable>
+          </Tap>
         </View>
       </View>
-    </Pressable>
+    </Tap>
     <ProductPreview product={product} visible={preview} onClose={() => setPreview(false)} />
   </>;
 }
