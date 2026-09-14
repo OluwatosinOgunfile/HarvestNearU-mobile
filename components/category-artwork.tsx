@@ -1,15 +1,49 @@
 import { Image } from 'expo-image';
-import { Droplets, Fish, Milk, TreePalm } from 'lucide-react-native';
 import { StyleSheet, View } from 'react-native';
 
-// The illustration sheet is a photographic 3D render set on this ground. Anything drawn in place of
-// a photograph sits on the same colour in both themes, so a category row reads as one set rather
-// than a mix of artwork and interface chrome.
+// Both artwork sets are drawn on this ground, so a category row reads as one set rather than a mix
+// of illustration styles. The tile that hosts this paints the same colour behind it in both themes.
 export const CATEGORY_GROUND = '#d5e8d0';
-const SHEET_GROUND = CATEGORY_GROUND;
-const MARK_TINT = '#1f5b3a';
 
-const artwork: Record<string, { column: number; row: number }> = {
+// The twelve categories added in migration 041 each carry their own illustration, cut out on
+// transparency so the tile ground shows through.
+const illustrations = {
+  'legumes-pulses': require('@/assets/images/categories/legumes-pulses.png'),
+  'nuts-seeds': require('@/assets/images/categories/nuts-seeds.png'),
+  'herbs-spices': require('@/assets/images/categories/herbs-spices.png'),
+  'leafy-greens': require('@/assets/images/categories/leafy-greens.png'),
+  'peppers-chillies': require('@/assets/images/categories/peppers-chillies.png'),
+  mushrooms: require('@/assets/images/categories/mushrooms.png'),
+  'oils-palm-produce': require('@/assets/images/categories/oils-palm-produce.png'),
+  'fish-aquaculture': require('@/assets/images/categories/fish-aquaculture.png'),
+  'livestock-meat': require('@/assets/images/categories/livestock-meat.png'),
+  'dairy-products': require('@/assets/images/categories/dairy-products.png'),
+  'honey-bee-products': require('@/assets/images/categories/honey-bee-products.png'),
+  'seedlings-planting-material': require('@/assets/images/categories/seedlings-planting-material.png'),
+} as const;
+
+/**
+ * Order is load-bearing, because several of these terms sit inside one another. Seedlings claim
+ * "planting" and "seed" before nuts and seeds can; oils claim "coconut" and "groundnut" before the
+ * bare "nut"; livestock claims "beef" before bee products can read the "bee" inside it.
+ */
+const illustrated: { match: string[]; key: keyof typeof illustrations }[] = [
+  { match: ['seedling', 'planting', 'nursery', 'cutting', 'seed yam'], key: 'seedlings-planting-material' },
+  { match: ['oil', 'palm', 'shea', 'coconut'], key: 'oils-palm-produce' },
+  { match: ['nut', 'seed', 'cashew', 'sesame', 'tigernut'], key: 'nuts-seeds' },
+  { match: ['legume', 'pulse', 'bean', 'cowpea', 'bambara'], key: 'legumes-pulses' },
+  { match: ['herb', 'spice', 'ginger', 'garlic', 'turmeric', 'seasoning'], key: 'herbs-spices' },
+  { match: ['leafy', 'leaf', 'ugwu', 'spinach', 'waterleaf'], key: 'leafy-greens' },
+  { match: ['pepper', 'chilli', 'chili', 'tatashe', 'shombo', 'bonnet'], key: 'peppers-chillies' },
+  { match: ['mushroom'], key: 'mushrooms' },
+  { match: ['fish', 'aqua', 'seafood', 'catfish', 'tilapia'], key: 'fish-aquaculture' },
+  { match: ['livestock', 'meat', 'beef', 'mutton', 'goat', 'ram', 'cattle'], key: 'livestock-meat' },
+  { match: ['dairy', 'milk', 'yoghurt', 'yogurt', 'nono', 'wara'], key: 'dairy-products' },
+  { match: ['honey', 'bee', 'apiary'], key: 'honey-bee-products' },
+];
+
+// The categories that shipped first still come from one 4x2 sheet of rendered produce.
+const sheet: Record<string, { column: number; row: number }> = {
   all: { column: 0, row: 0 },
   eggs: { column: 1, row: 0 },
   fruits: { column: 2, row: 0 },
@@ -20,52 +54,34 @@ const artwork: Record<string, { column: number; row: number }> = {
 };
 
 /**
- * Maps a category onto the closest illustration that honestly depicts it: pulses and seeds onto the
- * grain sack and its bowl of seed, leaves, peppers, herbs and mushrooms onto the vegetable basket,
- * meat onto the poultry plate. Only produce the sheet does not show at all falls through.
+ * Narrowed to what the sheet actually pictures. Pulses, seeds, leaves, peppers, herbs, mushrooms
+ * and meat used to be routed here and borrowed a grain sack, a vegetable basket or a poultry plate;
+ * they now have illustrations of their own and are matched before this runs.
  */
-function photographKey(category: string) {
+function sheetKey(category: string) {
   const value = category.trim().toLowerCase();
   if (value === 'all') return 'all';
   if (value.includes('egg')) return 'eggs';
   if (value.includes('fruit') || value.includes('plantain') || value.includes('banana') || value.includes('citrus')) return 'fruits';
-  if (value.includes('grain') || value.includes('rice') || value.includes('cereal') || value.includes('maize')
-    || value.includes('legume') || value.includes('pulse') || value.includes('bean')
-    || value.includes('nut') || value.includes('seed') || value.includes('planting')) return 'grains';
-  if (value.includes('poultry') || value.includes('chicken') || value.includes('bird')
-    || value.includes('livestock') || value.includes('meat') || value.includes('goat') || value.includes('ram')) return 'poultry';
+  if (value.includes('grain') || value.includes('rice') || value.includes('cereal') || value.includes('maize')) return 'grains';
+  if (value.includes('poultry') || value.includes('chicken') || value.includes('bird')) return 'poultry';
   if (value.includes('tuber') || value.includes('yam') || value.includes('cassava') || value.includes('root')) return 'tubers';
-  if (value.includes('veget') || value.includes('herb') || value.includes('spice') || value.includes('pepper')
-    || value.includes('chilli') || value.includes('chili') || value.includes('leaf') || value.includes('green')
-    || value.includes('mushroom')) return 'vegetables';
-  return null;
-}
-
-// Produce the sheet does not picture at all. These want their own rendered illustrations; until
-// then they carry a drawn mark on the sheet's ground rather than borrowing another category's food.
-const marks: { match: string[]; Icon: typeof Fish }[] = [
-  { match: ['fish', 'aqua', 'seafood'], Icon: Fish },
-  { match: ['dairy', 'milk', 'yoghurt', 'nono', 'wara'], Icon: Milk },
-  { match: ['honey', 'bee', 'apiary'], Icon: Droplets },
-  { match: ['oil', 'palm', 'shea', 'coconut'], Icon: TreePalm },
-];
-
-function markFor(category: string) {
-  const value = category.trim().toLowerCase();
-  return marks.find((mark) => mark.match.some((term) => value.includes(term))) || null;
+  if (value.includes('veget') || value.includes('green') || value.includes('salad')) return 'vegetables';
+  return 'all';
 }
 
 export function CategoryArtwork({ category, size }: { category: string; size: number }) {
-  const photograph = photographKey(category);
+  const value = category.trim().toLowerCase();
+  const illustration = illustrated.find((entry) => entry.match.some((term) => value.includes(term)));
 
-  if (!photograph) {
-    const Icon = markFor(category)?.Icon || TreePalm;
-    return <View style={[styles.crop, styles.mark, { width: size, height: size }]}>
-      <Icon size={Math.round(size * 0.44)} color={MARK_TINT} strokeWidth={1.5} />
+  if (illustration) {
+    return <View style={[styles.crop, { width: size, height: size }]}>
+      <Image source={illustrations[illustration.key]} contentFit="contain" transition={220}
+        style={{ width: size, height: size }} />
     </View>;
   }
 
-  const position = artwork[photograph];
+  const position = sheet[sheetKey(category)];
   const sheetSize = size * 4;
   const topOffset = position.row === 0 ? size * 0.67 : size * 1.91;
 
@@ -87,6 +103,5 @@ export function CategoryArtwork({ category, size }: { category: string; size: nu
 }
 
 const styles = StyleSheet.create({
-  crop: { overflow: 'hidden', backgroundColor: SHEET_GROUND },
-  mark: { alignItems: 'center', justifyContent: 'center' },
+  crop: { overflow: 'hidden', backgroundColor: CATEGORY_GROUND, alignItems: 'center', justifyContent: 'center' },
 });
