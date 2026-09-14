@@ -30,7 +30,7 @@ const marketplaceIntents: Array<{ phrases: string[]; terms: string[]; context?: 
 
 const produceSynonyms = [
   ['rice', 'oryza', 'oryza sativa', 'oriza', 'oriza sativa'],
-  ['chicken', 'chick', 'chicks', 'poultry'],
+  ['chicken', 'chick', 'chicks', 'poultry', 'turkey'],
   ['pepper', 'scotch bonnet'],
   ['maize', 'corn'],
   ['ugwu', 'spinach', 'leafy vegetable', 'leafy vegetables'],
