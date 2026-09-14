@@ -34,7 +34,7 @@ import { Text } from "@/components/typography";
 import { useApp } from "@/context/app-context";
 import { API_URL, api } from "@/lib/api";
 import { titleCase } from "@/lib/format";
-import { pageHeading } from "@/lib/headings";
+import { pageContent, pageHeading } from "@/lib/headings";
 type Farm = {
   id: string;
   name: string;
@@ -961,7 +961,7 @@ function Empty({ theme, text }: { theme: any; text: string }) {
   );
 }
 const styles = StyleSheet.create({
-  content: { padding: 18, paddingBottom: 45 },
+  content: { ...pageContent, paddingBottom: 45 },
   eyebrow: pageHeading.kicker,
   title: pageHeading.title,
   subtitle: pageHeading.subtitle,

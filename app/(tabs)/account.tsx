@@ -41,7 +41,7 @@ import { Screen } from "@/components/screen";
 import { Text, TextInput } from "@/components/typography";
 import { useApp } from "@/context/app-context";
 import { API_URL, absoluteUrl, api, saveSessionToken } from "@/lib/api";
-import { pageHeading } from "@/lib/headings";
+import { pageContent, pageHeading } from "@/lib/headings";
 
 export default function Account() {
   const router = useRouter();
@@ -1220,7 +1220,7 @@ const guideStyles = StyleSheet.create({
   text: { fontSize: 12, lineHeight: 17, marginTop: 4 },
 });
 const styles = StyleSheet.create({
-  content: { padding: 20 },
+  content: { ...pageContent, paddingBottom: 20 },
   profile: {
     paddingVertical: 18,
     flexDirection: "row",
@@ -1266,12 +1266,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 8,
   },
-  eyebrow: {
-    fontSize: 11,
-    fontWeight: "900",
-    letterSpacing: 1.2,
-    marginTop: 12,
-  },
+  eyebrow: pageHeading.kicker,
   signupHeadingRow: {
     minHeight: 34,
     marginTop: 8,
@@ -1281,7 +1276,9 @@ const styles = StyleSheet.create({
   },
   signupEyebrow: { marginTop: 0 },
   title: pageHeading.title,
-  copy: { fontSize: 14, lineHeight: 21, marginTop: 8 },
+  // The same third line as the other tabs, but the form below brings its own top margin, so this
+  // one does not carry the shared bottom margin.
+  copy: { fontSize: pageHeading.subtitle.fontSize, lineHeight: pageHeading.subtitle.lineHeight, marginTop: pageHeading.subtitle.marginTop },
   form: { marginTop: 24, padding: 18, borderWidth: 1, borderRadius: 17 },
   googleButton: {
     height: 50,

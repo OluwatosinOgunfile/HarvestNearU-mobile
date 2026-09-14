@@ -36,7 +36,7 @@ import {
   isClosedOrder,
 } from "@/lib/order-status";
 import { receiptHtml } from "@/lib/receipt";
-import { pageHeading } from "@/lib/headings";
+import { pageContent, pageHeading } from "@/lib/headings";
 
 type OrderItem = {
   id: string;
@@ -1167,7 +1167,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginTop: 5,
   },
-  content: { padding: 20 },
+  content: { ...pageContent, paddingBottom: 20 },
   eyebrow: pageHeading.kicker,
   title: pageHeading.title,
   subtitle: pageHeading.subtitle,
