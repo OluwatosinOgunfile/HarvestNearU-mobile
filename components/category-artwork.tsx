@@ -102,6 +102,9 @@ export function CategoryArtwork({ category, size }: { category: string; size: nu
   </View>;
 }
 
+// No alignment here on purpose. The sheet below is an oversized absolute child with no insets, and
+// Yoga would place such a child by the parent's alignment before its own transforms ran, which
+// shifts every crop off its cell. The illustrations are already drawn at the full tile size.
 const styles = StyleSheet.create({
-  crop: { overflow: 'hidden', backgroundColor: CATEGORY_GROUND, alignItems: 'center', justifyContent: 'center' },
+  crop: { overflow: 'hidden', backgroundColor: CATEGORY_GROUND },
 });
