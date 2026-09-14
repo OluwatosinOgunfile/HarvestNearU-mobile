@@ -1,9 +1,39 @@
 import { Redirect, Tabs, usePathname } from 'expo-router';
+import * as QuickActions from 'expo-quick-actions';
+import { useQuickActionRouting } from 'expo-quick-actions/router';
+import { useEffect } from 'react';
 import { Home, PackageCheck, ShoppingBag, Store, UserRound } from 'lucide-react-native';
 import { Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useApp } from '@/context/app-context';
+
+// Long-pressing the launcher icon opens the few places people actually return to. The list follows
+// the signed-in role, and Android keeps the shortcuts after the app closes.
+function useHomeScreenShortcuts(){
+  const {user}=useApp();
+  useQuickActionRouting();
+  useEffect(()=>{
+    const role=user?.role;
+    if(role==='admin'||role==='support')return;
+    const shopper=[
+      {id:'shop',title:'Shop produce',params:{href:'/shop'}},
+      {id:'basket',title:'Your basket',params:{href:'/basket'}},
+      {id:'orders',title:'My orders',params:{href:'/orders'}},
+      {id:'saved',title:'Saved harvests',params:{href:'/saved'}},
+    ];
+    const farming=[
+      {id:'workspace',title:'Farm workspace',params:{href:'/workspace'}},
+      {id:'listing',title:'Add a listing',params:{href:'/listing'}},
+      {id:'shop',title:'Shop produce',params:{href:'/shop'}},
+      {id:'orders',title:'My orders',params:{href:'/orders'}},
+    ];
+    const items=role==='farmer'?farming:shopper;
+    const limit=QuickActions.maxCount ?? items.length;
+    void QuickActions.setItems(items.slice(0,limit)).catch(()=>undefined);
+  },[user?.role]);
+}
 export default function TabLayout(){
+  useHomeScreenShortcuts();
   const {theme,user,sessionReady}=useApp();
   const insets=useSafeAreaInsets();
   const pathname=usePathname();
