@@ -27,13 +27,14 @@ import {
   View,
 } from "react-native";
 import { Tap } from "@/components/tap";
-import { Header } from "@/components/header";
+import { Header, HeaderAction } from "@/components/header";
 import { Screen } from "@/components/screen";
 import { SelectDropdown } from "@/components/select-dropdown";
 import { Text } from "@/components/typography";
 import { useApp } from "@/context/app-context";
 import { API_URL, api } from "@/lib/api";
 import { titleCase } from "@/lib/format";
+import { pageHeading } from "@/lib/headings";
 type Farm = {
   id: string;
   name: string;
@@ -326,44 +327,34 @@ export default function Workspace() {
     );
   return (
     <Screen refreshing={loading} onRefresh={() => load()}>
-      <Header showBasket={false} />
+      {/* The three actions live in the top bar, so the page heading gets the full width and reads the
+          same as every other tab instead of wrapping around them. */}
+      <Header
+        showBasket={false}
+        actions={
+          <>
+            <HeaderAction label="Farm verification" onPress={() => router.push(`/farm-verification?farmId=${farmId}` as never)}>
+              <ShieldCheck size={21} color={theme.primary} />
+            </HeaderAction>
+            <HeaderAction label="Payouts" onPress={() => router.push("/payouts" as never)}>
+              <CircleDollarSign size={21} color={theme.primary} />
+            </HeaderAction>
+            <HeaderAction label="Add a listing" filled onPress={() => router.push("/listing")}>
+              <Plus size={21} color={theme.primaryText} />
+            </HeaderAction>
+          </>
+        }
+      />
       <View style={styles.content}>
-        <View style={styles.headingRow}>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.eyebrow, { color: theme.primary }]}>
-              FARMER WORKSPACE
-            </Text>
-            <Text style={[styles.title, { color: theme.text }]}>
-              Manage your harvest.
-            </Text>
-          </View>
-          <Tap
-            accessibilityLabel="Farm verification"
-            onPress={() => router.push(`/farm-verification?farmId=${farmId}` as never)}
-            style={[
-              styles.addTop,
-              { borderWidth: 1, borderColor: theme.primary, marginRight: 8 },
-            ]}
-          >
-            <ShieldCheck size={20} color={theme.primary} />
-          </Tap>
-          <Tap
-            accessibilityLabel="Payouts"
-            onPress={() => router.push("/payouts" as never)}
-            style={[
-              styles.addTop,
-              { borderWidth: 1, borderColor: theme.primary, marginRight: 8 },
-            ]}
-          >
-            <CircleDollarSign size={20} color={theme.primary} />
-          </Tap>
-          <Tap
-            onPress={() => router.push("/listing")}
-            style={[styles.addTop, { backgroundColor: theme.primary }]}
-          >
-            <Plus size={20} color={theme.primaryText} />
-          </Tap>
-        </View>
+        <Text style={[styles.eyebrow, { color: theme.primary }]}>
+          FARMER WORKSPACE
+        </Text>
+        <Text style={[styles.title, { color: theme.text }]}>
+          Manage your harvest
+        </Text>
+        <Text style={[styles.subtitle, { color: theme.muted }]}>
+          Track sales, fulfil orders, and keep your listings current.
+        </Text>
         {data?.farms?.length ? (
           <SelectDropdown
             label="Active farm"
@@ -971,9 +962,9 @@ function Empty({ theme, text }: { theme: any; text: string }) {
 }
 const styles = StyleSheet.create({
   content: { padding: 18, paddingBottom: 45 },
-  headingRow: { flexDirection: "row", alignItems: "center" },
-  eyebrow: { fontSize: 11, fontWeight: "900", letterSpacing: 1.2 },
-  title: { fontFamily: "serif", fontSize: 32, fontWeight: "600", marginTop: 6 },
+  eyebrow: pageHeading.kicker,
+  title: pageHeading.title,
+  subtitle: pageHeading.subtitle,
   copy: { fontSize: 12, lineHeight: 18, marginTop: 4 },
   consoleIcon: {
     width: 54,
@@ -1004,13 +995,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-  },
-  addTop: {
-    width: 46,
-    height: 46,
-    borderRadius: 13,
-    alignItems: "center",
-    justifyContent: "center",
   },
   farms: { gap: 8, paddingVertical: 16 },
   farmChoice: {

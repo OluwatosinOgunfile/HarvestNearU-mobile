@@ -41,6 +41,7 @@ import { Screen } from "@/components/screen";
 import { Text, TextInput } from "@/components/typography";
 import { useApp } from "@/context/app-context";
 import { API_URL, absoluteUrl, api, saveSessionToken } from "@/lib/api";
+import { pageHeading } from "@/lib/headings";
 
 export default function Account() {
   const router = useRouter();
@@ -1279,7 +1280,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   signupEyebrow: { marginTop: 0 },
-  title: { fontFamily: "Georgia_Regular", fontSize: 35, marginTop: 8 },
+  title: pageHeading.title,
   copy: { fontSize: 14, lineHeight: 21, marginTop: 8 },
   form: { marginTop: 24, padding: 18, borderWidth: 1, borderRadius: 17 },
   googleButton: {

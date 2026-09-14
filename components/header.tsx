@@ -7,7 +7,19 @@ import { useCallback } from 'react';
 import { useApp } from '@/context/app-context';
 import { Tap } from '@/components/tap';
 
-export function Header({ title, home = false, onSearch, showBasket = true }: { title?: string; home?: boolean; onSearch?: () => void; showBasket?: boolean }) {
+/**
+ * A button that belongs in the top bar. Screens use this rather than styling their own, so an
+ * injected action is the same size and shape as the notification, search and basket buttons.
+ */
+export function HeaderAction({ label, onPress, filled = false, children }: { label: string; onPress: () => void; filled?: boolean; children: React.ReactNode }) {
+  const { theme } = useApp();
+  return <Tap accessibilityLabel={label} onPress={onPress}
+    style={[styles.icon, filled ? { backgroundColor: theme.primary, borderColor: theme.primary } : { borderColor: theme.primary, backgroundColor: theme.surface }]}>
+    {children}
+  </Tap>;
+}
+
+export function Header({ title, home = false, onSearch, showBasket = true, actions }: { title?: string; home?: boolean; onSearch?: () => void; showBasket?: boolean; actions?: React.ReactNode }) {
   const { theme, cartCount, notificationCount, refreshNotifications, user, dark, setDark } = useApp();
   const router = useRouter();
   const pathname = usePathname();
@@ -16,6 +28,7 @@ export function Header({ title, home = false, onSearch, showBasket = true }: { t
   return <View style={styles.row}>
     <Image source={require('@/assets/images/harvestnearu-logo.png')} style={styles.logo} contentFit="contain"  transition={220}/>
     <View style={styles.actions}>
+      {actions}
       {user && home ? <Tap accessibilityLabel={`Notifications${notificationCount ? `, ${notificationCount} unread` : ''}`} onPress={() => router.push('/notifications')} style={[styles.icon, { borderColor: theme.border, backgroundColor: theme.surface }]}><Bell size={21} color={theme.primary} />{notificationCount > 0 && <Text style={styles.badge}>{notificationCount > 99 ? '99+' : notificationCount}</Text>}</Tap> : !user ? <Tap accessibilityLabel={dark ? 'Use light mode' : 'Use dark mode'} onPress={() => setDark(!dark)} style={[styles.icon, { borderColor: theme.border, backgroundColor: theme.surface }]}>{dark ? <Sun size={21} color={theme.primary} /> : <Moon size={21} color={theme.primary} />}</Tap> : null}
       {onSearch ? <Tap accessibilityLabel="Search the market" onPress={onSearch} style={[styles.icon, { borderColor: theme.border, backgroundColor: theme.surface }]}><Search size={21} color={theme.primary} /></Tap> : null}
       {!home && basketVisible ? <Tap accessibilityLabel="Open basket" onPress={() => router.push('/basket')} style={[styles.icon, { backgroundColor: theme.primary }]}><ShoppingBag size={21} color={theme.primaryText} />{cartCount > 0 && <Text style={styles.badge}>{cartCount}</Text>}</Tap> : null}

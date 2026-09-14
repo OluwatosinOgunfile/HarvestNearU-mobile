@@ -36,6 +36,7 @@ import {
   isClosedOrder,
 } from "@/lib/order-status";
 import { receiptHtml } from "@/lib/receipt";
+import { pageHeading } from "@/lib/headings";
 
 type OrderItem = {
   id: string;
@@ -1167,9 +1168,9 @@ const styles = StyleSheet.create({
     marginTop: 5,
   },
   content: { padding: 20 },
-  eyebrow: { fontSize: 11, fontWeight: "900", letterSpacing: 1.2 },
-  title: { fontFamily: "Georgia_Regular", fontSize: 35, marginTop: 7 },
-  subtitle: { fontSize: 14, marginTop: 7, marginBottom: 18 },
+  eyebrow: pageHeading.kicker,
+  title: pageHeading.title,
+  subtitle: pageHeading.subtitle,
   tabs: {
     height: 52,
     padding: 4,
