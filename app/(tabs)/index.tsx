@@ -1,8 +1,8 @@
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import { ArrowRight, Check, LocateFixed, MapPin, Search, ShoppingBag, Star, Store, Truck, X } from 'lucide-react-native';
+import { ArrowRight, Check, CreditCard, LocateFixed, MapPin, Search, ShoppingBag, Star, Store, Truck, X } from 'lucide-react-native';
 import { useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Animated, ScrollView, StyleSheet, TextInput as NativeTextInput, useWindowDimensions, View } from 'react-native';
+import { ActivityIndicator, Animated, type DimensionValue, ScrollView, StyleSheet, TextInput as NativeTextInput, useWindowDimensions, View } from 'react-native';
 import { Tap } from '@/components/tap';
 import { Header } from '@/components/header';
 import { CATEGORY_GROUND, CategoryArtwork } from '@/components/category-artwork';
@@ -15,12 +15,20 @@ import { useApp } from '@/context/app-context';
 import { matchesSearchTerms, searchIntentFallback } from '@/lib/search-intent';
 import { palette } from '@/lib/theme';
 
+// The order lifecycle is pending_payment -> paid -> confirmed -> preparing -> ready -> dispatched
+// -> delivered or collected, so payment comes before the farm packs anything, not after it arrives.
+// The last step is the customer tapping "I received this product": that closes the order and starts
+// the short dispute window before the farmer is paid, so it belongs in the journey.
 const steps = [
   [LocateFixed, 'Discover'],
   [ShoppingBag, 'Order'],
-  [Truck, 'Deliver'],
-  [Check, 'Pay'],
+  [CreditCard, 'Pay'],
+  [Truck, 'Receive'],
+  [Check, 'Confirm'],
 ] as const;
+
+// Half a step, so the rule between the icons starts and ends on the first and last icon centre.
+const stepInset = `${50 / steps.length}%` as DimensionValue;
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -87,5 +95,5 @@ const styles=StyleSheet.create({
   marketHead:{flexDirection:'row',alignItems:'center',gap:12},kicker:{fontSize:11,fontWeight:'900',letterSpacing:1.2},heading:{marginTop:5,fontSize:28,fontFamily:'Georgia_Bold'},searchBar:{height:52,alignSelf:'flex-end',marginTop:14,paddingHorizontal:14,borderWidth:1,borderRadius:15,flexDirection:'row',alignItems:'center',gap:9,overflow:'hidden'},searchInput:{flex:1,height:'100%',fontSize:14,outlineWidth:0,outlineColor:'transparent'},searchSuggestions:{marginTop:8,borderWidth:1,borderRadius:15,padding:10},suggestionHeading:{paddingHorizontal:4,paddingBottom:7,flexDirection:'row',alignItems:'center',justifyContent:'space-between'},suggestionTitle:{fontSize:13,fontWeight:'900'},suggestionCount:{fontSize:11},suggestion:{minHeight:70,paddingVertical:9,flexDirection:'row',alignItems:'center',gap:9},suggestionMain:{flex:1,flexDirection:'row',alignItems:'center',gap:10},suggestionImage:{width:52,height:52,borderRadius:11},suggestionName:{fontSize:13,fontWeight:'800'},suggestionFarm:{fontSize:11,marginTop:2},suggestionPrice:{fontSize:13,marginTop:3},suggestionAdd:{width:40,height:40,borderRadius:12,alignItems:'center',justifyContent:'center'},suggestionEmpty:{minHeight:112,alignItems:'center',justifyContent:'center',gap:5},
   sectionHead:{flexDirection:'row',alignItems:'flex-end',justifyContent:'space-between',gap:10},sectionHeadCopy:{flex:1,minWidth:0},sectionTitle:{fontFamily:'Georgia_Bold',fontSize:24,marginTop:4},viewAllTap:{flexShrink:0,minHeight:44,justifyContent:'center'},viewAll:{fontSize:12,fontWeight:'900'},categoryScroll:{paddingTop:14,paddingRight:18,gap:12},categoryItem:{width:78,alignItems:'center'},categoryItemEmpty:{opacity:.58},categoryImageWrap:{width:68,height:68,borderWidth:2,borderRadius:20,overflow:'hidden',alignItems:'center',justifyContent:'center'},categoryLabel:{width:'100%',fontSize:11,lineHeight:14,fontWeight:'800',textAlign:'center',marginTop:7},categoryCount:{width:'100%',fontSize:10,fontWeight:'700',textAlign:'center',marginTop:2},
   farmScroll:{paddingTop:14,paddingRight:18,gap:12},farmCard:{width:220,borderWidth:1,borderRadius:16,overflow:'hidden'},farmImage:{width:'100%',height:116},farmBody:{padding:13},farmNameRow:{flexDirection:'row',alignItems:'center',gap:6},farmName:{flex:1,fontFamily:'Georgia_Bold',fontSize:17},farmMeta:{flexDirection:'row',alignItems:'center',gap:4,marginTop:8},farmLocation:{flexDirection:'row',alignItems:'center',gap:4,marginTop:7},sales:{fontSize:11,fontWeight:'900',marginTop:9},
-  location:{width:44,height:44,borderWidth:1,borderRadius:13,alignItems:'center',justifyContent:'center'},loader:{marginTop:50},message:{padding:20,borderRadius:14,marginTop:15,gap:5},productScroll:{paddingTop:14},journeyHeading:{marginTop:4,fontFamily:'Georgia_Bold',fontSize:23},journey:{marginTop:16,marginBottom:4,flexDirection:'row',alignItems:'flex-start',position:'relative'},journeyLine:{position:'absolute',top:20,left:'12.5%',right:'12.5%',height:2},journeyStep:{width:'25%',alignItems:'center',zIndex:1},journeyIcon:{width:42,height:42,borderRadius:13,borderWidth:1.5,alignItems:'center',justifyContent:'center'},journeyLabel:{maxWidth:'100%',fontSize:12,fontWeight:'800',marginTop:7,textAlign:'center'},floatingCart:{position:'absolute',right:18,bottom:18,minHeight:50,paddingLeft:16,paddingRight:8,borderWidth:3,borderRadius:25,flexDirection:'row',alignItems:'center',gap:8,shadowColor:'#000',shadowOffset:{width:0,height:5},shadowOpacity:.22,shadowRadius:10,elevation:8},floatingCartText:{fontSize:13,fontWeight:'900'},floatingCartCount:{minWidth:34,height:34,paddingHorizontal:8,borderRadius:17,alignItems:'center',justifyContent:'center'},floatingCartCountText:{fontSize:12,fontWeight:'900'},
+  location:{width:44,height:44,borderWidth:1,borderRadius:13,alignItems:'center',justifyContent:'center'},loader:{marginTop:50},message:{padding:20,borderRadius:14,marginTop:15,gap:5},productScroll:{paddingTop:14},journeyHeading:{marginTop:4,fontFamily:'Georgia_Bold',fontSize:23},journey:{marginTop:16,marginBottom:4,flexDirection:'row',alignItems:'flex-start',position:'relative'},journeyLine:{position:'absolute',top:20,left:stepInset,right:stepInset,height:2},journeyStep:{flex:1,alignItems:'center',zIndex:1},journeyIcon:{width:42,height:42,borderRadius:13,borderWidth:1.5,alignItems:'center',justifyContent:'center'},journeyLabel:{maxWidth:'100%',fontSize:12,fontWeight:'800',marginTop:7,textAlign:'center'},floatingCart:{position:'absolute',right:18,bottom:18,minHeight:50,paddingLeft:16,paddingRight:8,borderWidth:3,borderRadius:25,flexDirection:'row',alignItems:'center',gap:8,shadowColor:'#000',shadowOffset:{width:0,height:5},shadowOpacity:.22,shadowRadius:10,elevation:8},floatingCartText:{fontSize:13,fontWeight:'900'},floatingCartCount:{minWidth:34,height:34,paddingHorizontal:8,borderRadius:17,alignItems:'center',justifyContent:'center'},floatingCartCountText:{fontSize:12,fontWeight:'900'},
 });
