@@ -16,16 +16,16 @@ function useHomeScreenShortcuts(){
     const role=user?.role;
     if(role==='admin'||role==='support')return;
     const shopper=[
-      {id:'shop',title:'Shop produce',params:{href:'/shop'}},
-      {id:'basket',title:'Your basket',params:{href:'/basket'}},
-      {id:'orders',title:'My orders',params:{href:'/orders'}},
-      {id:'saved',title:'Saved harvests',params:{href:'/saved'}},
+      {id:'shop',title:'Shop produce',icon:'shortcut_shop',params:{href:'/shop'}},
+      {id:'basket',title:'Your basket',icon:'shortcut_basket',params:{href:'/basket'}},
+      {id:'orders',title:'My orders',icon:'shortcut_orders',params:{href:'/orders'}},
+      {id:'saved',title:'Saved harvests',icon:'shortcut_saved',params:{href:'/saved'}},
     ];
     const farming=[
-      {id:'workspace',title:'Farm workspace',params:{href:'/workspace'}},
-      {id:'listing',title:'Add a listing',params:{href:'/listing'}},
-      {id:'shop',title:'Shop produce',params:{href:'/shop'}},
-      {id:'orders',title:'My orders',params:{href:'/orders'}},
+      {id:'workspace',title:'Farm workspace',icon:'shortcut_workspace',params:{href:'/workspace'}},
+      {id:'listing',title:'Add a listing',icon:'shortcut_listing',params:{href:'/listing'}},
+      {id:'shop',title:'Shop produce',icon:'shortcut_shop',params:{href:'/shop'}},
+      {id:'orders',title:'My orders',icon:'shortcut_orders',params:{href:'/orders'}},
     ];
     const items=role==='farmer'?farming:shopper;
     const limit=QuickActions.maxCount ?? items.length;

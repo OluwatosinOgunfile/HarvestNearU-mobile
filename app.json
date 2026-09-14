@@ -89,7 +89,37 @@
           }
         }
       ],
-      "expo-quick-actions"
+      [
+        "expo-quick-actions",
+        {
+          "androidIcons": {
+            "shortcut_workspace": {
+              "foregroundImage": "./assets/shortcuts/shortcut-workspace.png",
+              "backgroundColor": "#1f5b3a"
+            },
+            "shortcut_listing": {
+              "foregroundImage": "./assets/shortcuts/shortcut-listing.png",
+              "backgroundColor": "#1f5b3a"
+            },
+            "shortcut_shop": {
+              "foregroundImage": "./assets/shortcuts/shortcut-shop.png",
+              "backgroundColor": "#1f5b3a"
+            },
+            "shortcut_orders": {
+              "foregroundImage": "./assets/shortcuts/shortcut-orders.png",
+              "backgroundColor": "#1f5b3a"
+            },
+            "shortcut_basket": {
+              "foregroundImage": "./assets/shortcuts/shortcut-basket.png",
+              "backgroundColor": "#1f5b3a"
+            },
+            "shortcut_saved": {
+              "foregroundImage": "./assets/shortcuts/shortcut-saved.png",
+              "backgroundColor": "#1f5b3a"
+            }
+          }
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
