@@ -51,6 +51,7 @@ type OrderItem = {
 type OrderFarm = {
   id: string;
   name: string;
+  unread_messages?: number;
   rating: number | null;
   comment: string | null;
 };
@@ -616,7 +617,7 @@ function OrderCard({
           {order.fulfilment_method === "farmer_delivery" ? (
             <View style={styles.chatList}>
               <Text style={[styles.sectionLabel, { color: theme.muted }]}>ARRANGE WITH FARMER</Text>
-              {order.farms.map((farm) => <Tap key={farm.id} onPress={() => router.push({ pathname: "/order-chat", params: { orderId: order.id, farmId: farm.id } } as never)} style={[styles.chatButton, { borderColor: theme.primary }]}><MessageCircle size={17} color={theme.primary}/><Text style={{ color: theme.primary, fontWeight: "900" }}>Chat with {farm.name}</Text></Tap>)}
+              {order.farms.map((farm) => <Tap key={farm.id} onPress={() => router.push({ pathname: "/order-chat", params: { orderId: order.id, farmId: farm.id } } as never)} style={[styles.chatButton, { borderColor: theme.primary }]}><MessageCircle size={17} color={theme.primary}/><Text style={{ color: theme.primary, fontWeight: "900" }}>Chat with {farm.name}</Text>{Number(farm.unread_messages) > 0 ? <Text style={styles.chatUnread}>{Number(farm.unread_messages) > 9 ? "9+" : farm.unread_messages}</Text> : null}</Tap>)}
             </View>
           ) : null}
           {order.tracking ? (
@@ -1145,6 +1146,7 @@ function Empty({
 }
 
 const styles = StyleSheet.create({
+  chatUnread: { minWidth: 19, height: 19, marginLeft: 6, paddingHorizontal: 5, borderRadius: 10, backgroundColor: "#b64337", color: "#fff", fontSize: 10, fontWeight: "900", lineHeight: 19, textAlign: "center", overflow: "hidden" },
   chatList:{gap:8,marginTop:14},
   chatButton:{minHeight:44,paddingHorizontal:12,borderWidth:1,borderRadius:10,flexDirection:"row",alignItems:"center",gap:8},
   modalBackdrop: {

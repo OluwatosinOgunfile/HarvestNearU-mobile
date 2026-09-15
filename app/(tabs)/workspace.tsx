@@ -52,6 +52,7 @@ type Item = {
 type Order = {
   id: string;
   order_id: string;
+  unread_messages?: number;
   order_number: string;
   status: string;
   customer: string;
@@ -521,7 +522,7 @@ export default function Workspace() {
                           </View>
                         );
                       })}
-                      {order.fulfilment_method === "farmer_delivery" ? <Tap onPress={() => router.push({ pathname: "/order-chat", params: { orderId: order.order_id, farmId } } as never)} style={[styles.orderChat, { borderColor: theme.primary }]}><MessageCircle size={16} color={theme.primary}/><Text style={{ color: theme.primary, fontWeight: "900" }}>Chat with customer</Text></Tap> : null}
+                      {order.fulfilment_method === "farmer_delivery" ? <Tap onPress={() => router.push({ pathname: "/order-chat", params: { orderId: order.order_id, farmId } } as never)} style={[styles.orderChat, { borderColor: theme.primary }]}><MessageCircle size={16} color={theme.primary}/><Text style={{ color: theme.primary, fontWeight: "900" }}>Chat with customer</Text>{Number(order.unread_messages) > 0 ? <Text style={styles.chatUnread}>{Number(order.unread_messages) > 9 ? "9+" : order.unread_messages}</Text> : null}</Tap> : null}
                     </View>
                   ))
               ) : (
@@ -1162,6 +1163,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 8,
   },
+  chatUnread: { minWidth: 19, height: 19, marginLeft: 6, paddingHorizontal: 5, borderRadius: 10, backgroundColor: "#b64337", color: "#fff", fontSize: 10, fontWeight: "900", lineHeight: 19, textAlign: "center", overflow: "hidden" },
   farmActions: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginTop: 10 },
   farmAction: {
     width: "48%",
