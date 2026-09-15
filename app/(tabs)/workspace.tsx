@@ -908,8 +908,15 @@ function Metric({
         { backgroundColor: theme.surface, borderColor: theme.border },
       ]}
     >
-      {icon}
-      <Text style={[styles.metricLabel, { color: theme.muted }]}>{label}</Text>
+      <View style={styles.metricHead}>
+        {icon}
+        <Text
+          numberOfLines={1}
+          style={[styles.metricLabel, { color: theme.muted }]}
+        >
+          {label}
+        </Text>
+      </View>
       <Text
         style={[
           styles.metricValue,
@@ -1027,19 +1034,23 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   metrics: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
+  // The label now shares the icon's line, which is what lets the tile come down from 118 to 80:
+  // 12 of padding twice, a 21 icon row, 6, then the 21 value on its own line. The widest label,
+  // "Today's net sales", measures 80dp of the 118dp left beside the icon, so none of them wrap.
   metric: {
     width: "48%",
-    minHeight: 118,
-    padding: 14,
+    minHeight: 80,
+    padding: 12,
     borderWidth: 1,
     borderRadius: 14,
   },
-  metricLabel: { fontSize: 11, marginTop: 11 },
+  metricHead: { flexDirection: "row", alignItems: "center", gap: 8 },
+  metricLabel: { flex: 1, fontSize: 11 },
   metricValue: {
     fontFamily: "serif",
     fontSize: 21,
     fontWeight: "600",
-    marginTop: 4,
+    marginTop: 6,
   },
   section: { marginTop: 14, padding: 16, borderWidth: 1, borderRadius: 16 },
   sectionHeading: { flexDirection: "row", alignItems: "center", gap: 12 },
