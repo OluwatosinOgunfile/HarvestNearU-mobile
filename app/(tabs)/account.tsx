@@ -1239,25 +1239,29 @@ const styles = StyleSheet.create({
   name: { fontFamily: "Georgia_Regular", fontSize: 25 },
   accountRole: { fontSize: 12, fontWeight: "800", marginTop: 3 },
   grid: { marginTop: 15, flexDirection: "row", flexWrap: "wrap", gap: 10 },
+  // Trimmed from 124 to the height the tallest tile actually needs. The appearance tile carries a
+  // switch as well as an icon and a label, so 108 is 12 padding twice, a 36 icon, a 17 line of text
+  // and roughly 31 of switch. Every tile keeps that height so a row cannot end up uneven, and the
+  // label stays at 13 because shrinking the text is what would cost readability, not the box.
   menu: {
     width: "48%",
     flexGrow: 1,
-    minHeight: 124,
-    padding: 14,
+    minHeight: 108,
+    padding: 12,
     borderWidth: 1,
-    borderRadius: 16,
+    borderRadius: 14,
     justifyContent: "space-between",
   },
   menuIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: 12,
+    width: 36,
+    height: 36,
+    borderRadius: 11,
     alignItems: "center",
     justifyContent: "center",
   },
-  menuText: { fontSize: 13, fontWeight: "800", lineHeight: 18 },
+  menuText: { fontSize: 13, fontWeight: "800", lineHeight: 17 },
   signOut: {
-    height: 52,
+    height: 48,
     marginTop: 18,
     borderWidth: 1,
     borderRadius: 12,

@@ -327,22 +327,15 @@ export default function Workspace() {
     );
   return (
     <Screen refreshing={loading} onRefresh={() => load()}>
-      {/* The three actions live in the top bar, so the page heading gets the full width and reads the
-          same as every other tab instead of wrapping around them. */}
+      {/* Adding a listing is the one thing done from any part of the workspace, so it stays in the top
+          bar. Verification, payouts and the farm profile are occasional, and read better as labelled
+          buttons further down than as icons nobody can name. */}
       <Header
         showBasket={false}
         actions={
-          <>
-            <HeaderAction label="Farm verification" onPress={() => router.push(`/farm-verification?farmId=${farmId}` as never)}>
-              <ShieldCheck size={21} color={theme.primary} />
-            </HeaderAction>
-            <HeaderAction label="Payouts" onPress={() => router.push("/payouts" as never)}>
-              <CircleDollarSign size={21} color={theme.primary} />
-            </HeaderAction>
-            <HeaderAction label="Add a listing" filled onPress={() => router.push("/listing")}>
-              <Plus size={21} color={theme.primaryText} />
-            </HeaderAction>
-          </>
+          <HeaderAction label="Add a listing" filled onPress={() => router.push("/listing")}>
+            <Plus size={21} color={theme.primaryText} />
+          </HeaderAction>
         }
       />
       <View style={styles.content}>
@@ -398,6 +391,40 @@ export default function Workspace() {
                 value={`${Number(data.farm.average_rating || 0).toFixed(1)} (${data.farm.review_count || 0})`}
               />
             </View>
+            <View style={styles.farmActions}>
+              <Tap
+                onPress={() => router.push(`/farm-verification?farmId=${farmId}` as never)}
+                style={[styles.farmAction, { borderColor: theme.primary }]}
+              >
+                <ShieldCheck size={19} color={theme.primary} />
+                <Text style={[styles.farmActionLabel, { color: theme.primary }]}>
+                  Verification
+                </Text>
+              </Tap>
+              <Tap
+                onPress={() => router.push("/payouts" as never)}
+                style={[styles.farmAction, { borderColor: theme.primary }]}
+              >
+                <CircleDollarSign size={19} color={theme.primary} />
+                <Text style={[styles.farmActionLabel, { color: theme.primary }]}>
+                  Payouts
+                </Text>
+              </Tap>
+            </View>
+            <Tap
+              onPress={() =>
+                router.push({
+                  pathname: "/farm-profile",
+                  params: { farmId },
+                } as never)
+              }
+              style={[styles.manage, { borderColor: theme.primary }]}
+            >
+              <Store size={19} color={theme.primary} />
+              <Text style={{ color: theme.primary, fontWeight: "800" }}>
+                Manage farm profile and locations
+              </Text>
+            </Tap>
             <Section
               theme={theme}
               title="Orders to fulfil"
@@ -733,20 +760,6 @@ export default function Workspace() {
                 />
               )}
             </Section>
-            <Tap
-              onPress={() =>
-                router.push({
-                  pathname: "/farm-profile",
-                  params: { farmId },
-                } as never)
-              }
-              style={[styles.manage, { borderColor: theme.primary }]}
-            >
-              <Store size={19} color={theme.primary} />
-              <Text style={{ color: theme.primary, fontWeight: "800" }}>
-                Manage farm profile and locations
-              </Text>
-            </Tap>
           </>
         ) : null}
       </View>
@@ -1138,9 +1151,21 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 8,
   },
+  farmActions: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginTop: 10 },
+  farmAction: {
+    width: "48%",
+    height: 50,
+    borderWidth: 1,
+    borderRadius: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  farmActionLabel: { fontSize: 14, fontWeight: "800" },
   manage: {
     height: 50,
-    marginTop: 14,
+    marginTop: 10,
     borderWidth: 1,
     borderRadius: 12,
     flexDirection: "row",
