@@ -6,7 +6,7 @@ import * as Haptics from 'expo-haptics';
 import * as Notifications from 'expo-notifications';
 import { ShoppingBag } from 'lucide-react-native';
 import { PropsWithChildren, createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { AccessibilityInfo, Animated, Platform, StyleSheet, View, useColorScheme } from 'react-native';
+import { AccessibilityInfo, Animated, AppState, Platform, StyleSheet, View, useColorScheme } from 'react-native';
 import { Text } from '@/components/typography';
 import { api, clearSessionToken, saveSessionToken } from '@/lib/api';
 import { themes } from '@/lib/theme';
@@ -80,12 +80,30 @@ export function AppProvider({ children }: PropsWithChildren) {
     }
     setSessionReady(true);
   }, []);
+  // Ids already accounted for, so a poll only announces what is genuinely new. The first poll after
+  // signing in fills this without announcing anything: everything waiting then is a backlog, not an
+  // arrival, and a fistful of notifications on launch would be worse than none.
+  const announced = useRef<Set<string>|null>(null);
   const refreshNotifications = useCallback(async () => {
-    if (!user) { setNotificationCount(0); return; }
+    if (!user) { setNotificationCount(0); announced.current = null; return; }
     try {
-      const result = await api<{notifications:unknown[]}>('/api/notifications');
-      setNotificationCount(Array.isArray(result.notifications) ? result.notifications.length : 0);
-    } catch { setNotificationCount(0); }
+      const result = await api<{notifications:Array<{id:string;title?:string;message?:string;action_url?:string|null}>}>('/api/notifications');
+      const rows = Array.isArray(result.notifications) ? result.notifications : [];
+      setNotificationCount(rows.length);
+      const seen = announced.current;
+      announced.current = new Set(rows.map(row => String(row.id)));
+      if (!seen || Platform.OS === 'web') return;
+      // Remote push needs FCM credentials this build does not carry, so anything that arrives while
+      // the app is running is raised locally instead. It uses the same channel and the same route
+      // payload as a real push, so tapping it lands in the same place.
+      for (const row of rows) {
+        if (seen.has(String(row.id))) continue;
+        await Notifications.scheduleNotificationAsync({
+          content: { title: String(row.title || 'HarvestNearU'), body: String(row.message || ''), sound: 'default', data: { route: row.action_url || '/notifications' } },
+          trigger: null,
+        }).catch(() => undefined);
+      }
+    } catch { /* a dropped poll leaves the count as it was rather than blanking it */ }
   }, [user]);
 
   useEffect(() => { Promise.all([AsyncStorage.getItem(CART_KEY),AsyncStorage.getItem(THEME_KEY)]).then(([savedCart,savedTheme]) => {
@@ -96,7 +114,14 @@ export function AppProvider({ children }: PropsWithChildren) {
   useEffect(()=>{if(!user)return;api<{recommendations:{id:string}[]}>('/api/recommendations').then(result=>{const rank=new Map((result.recommendations||[]).map((item,index)=>[item.id,index]));setProducts(current=>[...current].sort((a,b)=>(rank.get(a.id)??999)-(rank.get(b.id)??999))) }).catch(()=>undefined)},[user]);
   useEffect(()=>{void refreshNotifications()},[refreshNotifications]);
   useEffect(()=>{if(!user||Platform.OS==='web'||!Device.isDevice)return;let active=true;const register=async()=>{try{if(Platform.OS==='android')await Notifications.setNotificationChannelAsync('actionable',{name:'Actionable updates',importance:Notifications.AndroidImportance.HIGH,sound:'default',vibrationPattern:[0,180,120,180]});const permission=await Notifications.requestPermissionsAsync();if(!permission.granted)return;const projectId=Constants.expoConfig?.extra?.eas?.projectId||Constants.easConfig?.projectId;if(!projectId)return;const token=(await Notifications.getExpoPushTokenAsync({projectId})).data;if(!active)return;setPushToken(token);await api('/api/notifications/push-token',{method:'POST',body:JSON.stringify({token,platform:Platform.OS,deviceName:Device.modelName})})}catch{}};void register();return()=>{active=false}},[user]);
-  useEffect(()=>{if(!user)return;const interval=setInterval(()=>void refreshNotifications(),30000);return()=>clearInterval(interval)},[user,refreshNotifications]);
+  useEffect(()=>{
+    if(!user)return;
+    const tick=()=>{ if(AppState.currentState==='active') void refreshNotifications(); };
+    const interval=setInterval(tick,15000);
+    // Coming back to the app should show what arrived while it was away, without waiting for a tick.
+    const subscription=AppState.addEventListener('change',state=>{ if(state==='active') void refreshNotifications(); });
+    return ()=>{ clearInterval(interval); subscription.remove(); };
+  },[user,refreshNotifications]);
   const setDark=(value:boolean)=>{ setDarkState(value); void AsyncStorage.setItem(THEME_KEY,value?'dark':'light'); };
   const add=(product:Product)=>{
     const currentQuantity=cart[product.id]||0;
