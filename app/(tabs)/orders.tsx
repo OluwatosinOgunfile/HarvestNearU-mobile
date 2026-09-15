@@ -564,8 +564,8 @@ function OrderCard({
           ) : null}
           {order.fulfilment_method === "farmer_delivery" ? (
             <View style={styles.chatList}>
-              <Text style={[styles.sectionLabel, { color: theme.muted }]}>ARRANGE WITH FARMER</Text>
-              {order.farms.map((farm) => <Tap key={farm.id} onPress={() => router.push({ pathname: "/order-chat", params: { orderId: order.id, farmId: farm.id } } as never)} style={[styles.chatButton, { borderColor: theme.primary }]}><MessageCircle size={17} color={theme.primary}/><Text style={{ color: theme.primary, fontWeight: "900" }}>Chat with {farm.name}</Text>{Number(farm.unread_messages) > 0 ? <Text style={styles.chatUnread}>{Number(farm.unread_messages) > 9 ? "9+" : farm.unread_messages}</Text> : null}</Tap>)}
+              <Text style={[styles.sectionLabel, { color: theme.muted, width: "100%" }]}>ARRANGE DELIVERY</Text>
+              {order.farms.map((farm) => <Tap key={farm.id} onPress={() => router.push({ pathname: "/order-chat", params: { orderId: order.id, farmId: farm.id } } as never)} style={[styles.chatButton, { borderColor: theme.primary }]}><MessageCircle size={15} color={theme.primary}/><Text style={{ color: theme.primary, fontWeight: "800", fontSize: 13 }}>{farm.name}</Text>{Number(farm.unread_messages) > 0 ? <Text style={styles.chatUnread}>{Number(farm.unread_messages) > 9 ? "9+" : farm.unread_messages}</Text> : null}</Tap>)}
             </View>
           ) : null}
           <Text style={[styles.sectionLabel, { color: theme.muted }]}>
@@ -1147,8 +1147,8 @@ function Empty({
 
 const styles = StyleSheet.create({
   chatUnread: { minWidth: 19, height: 19, marginLeft: 6, paddingHorizontal: 5, borderRadius: 10, backgroundColor: "#b64337", color: "#fff", fontSize: 10, fontWeight: "900", lineHeight: 19, textAlign: "center", overflow: "hidden" },
-  chatList:{gap:8,marginTop:2,marginBottom:18},
-  chatButton:{minHeight:44,paddingHorizontal:12,borderWidth:1,borderRadius:10,flexDirection:"row",alignItems:"center",gap:8},
+  chatList:{marginTop:2,marginBottom:18,flexDirection:"row",flexWrap:"wrap",alignItems:"center",gap:8},
+  chatButton:{minHeight:38,paddingHorizontal:13,borderWidth:1,borderRadius:19,flexDirection:"row",alignItems:"center",gap:7},
   modalBackdrop: {
     flex: 1,
     padding: 20,
