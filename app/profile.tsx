@@ -314,16 +314,19 @@ export default function UserProfile() {
               value={form.phone}
               onChangeText={change("phone")}
             />
-            {data?.user.role === "consumer" ? (
-              <Field
-                theme={theme}
-                label="Notification radius (km)"
-                hint="How far to look for new harvests worth telling you about. You are only notified when a farm within this distance of your saved address lists or restocks produce."
-                value={form.preferredRadius}
-                keyboardType="numeric"
-                onChangeText={change("preferredRadius")}
-              />
-            ) : null}
+            <Field
+              theme={theme}
+              label="Notification radius (km)"
+              hint={
+                "How far to look for new harvests worth telling you about. You are only notified when a farm within this distance of your saved address lists or restocks produce." +
+                (data?.user.role === "consumer"
+                  ? ""
+                  : " This is separate from how far your own farm delivers.")
+              }
+              value={form.preferredRadius}
+              keyboardType="numeric"
+              onChangeText={change("preferredRadius")}
+            />
             <Tap
               disabled={saving}
               onPress={() => void save()}
