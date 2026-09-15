@@ -94,6 +94,7 @@ type PayoutRequest = {
 type Dashboard = {
   farms: Farm[];
   farm: Farm;
+  deliveryRadiusMaxKm?: number;
   metrics: Record<string, number>;
   payoutRequests: PayoutRequest[];
   listings: Listing[];
@@ -208,6 +209,21 @@ export default function Workspace() {
     setError("");
   }
   async function saveDelivery() {
+    // The column is numeric(6,2), so above this Postgres raises an overflow the farmer cannot read.
+    const cap = data?.deliveryRadiusMaxKm ?? 9999.99;
+    const wanted = Number(String(radius).trim());
+    if (!Number.isFinite(wanted) || wanted < 0) {
+      setError("Enter the delivery radius in kilometres, for example 20.");
+      return;
+    }
+    if (wanted > cap) {
+      setError(`The delivery radius cannot be more than ${cap} km.`);
+      return;
+    }
+    if (offersDelivery && wanted <= 0) {
+      setError("Set a delivery radius above 0 km to offer doorstep delivery, or turn doorstep delivery off.");
+      return;
+    }
     setBusy("delivery");
     setError("");
     setDeliverySaved("");

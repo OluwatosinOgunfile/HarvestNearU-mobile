@@ -35,6 +35,7 @@ type Profile = {
     phone: string | null;
   };
   farms: Farm[];
+  deliveryRadiusMaxKm?: number;
 };
 
 export default function FarmProfile() {
@@ -86,6 +87,17 @@ export default function FarmProfile() {
     setForm((current) => ({ ...current, [key]: value }));
   async function save() {
     if (!profile || !farm) return;
+    // The column is numeric(6,2), so above this Postgres raises an overflow the farmer cannot read.
+    const cap = profile.deliveryRadiusMaxKm ?? 9999.99;
+    const wanted = Number(String(form.deliveryRadius).trim());
+    if (!Number.isFinite(wanted) || wanted < 0) {
+      setMessage("Enter the delivery radius in kilometres, for example 20.");
+      return;
+    }
+    if (wanted > cap) {
+      setMessage(`The delivery radius cannot be more than ${cap} km.`);
+      return;
+    }
     setSaving(true);
     setMessage("");
     try {

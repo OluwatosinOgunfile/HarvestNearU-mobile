@@ -46,6 +46,7 @@ type ProfileData = {
   storeCredit: { balance_kobo: number };
   emailPreferences: EmailPreferences;
   preferences?: { preferred_radius_km: number; marketing_consent: boolean };
+  nearbyRadiusMaxKm?: number;
   farms?: {
     id: string;
     name: string;
@@ -146,6 +147,16 @@ export default function UserProfile() {
   }
 
   async function save() {
+    const cap = data?.nearbyRadiusMaxKm ?? 25;
+    const wanted = Number(String(form.preferredRadius).trim());
+    if (!Number.isFinite(wanted) || wanted < 1) {
+      setMessage("Enter a notification radius of at least 1 km.");
+      return;
+    }
+    if (wanted > cap) {
+      setMessage(`Notifications reach ${cap} km at most, so the radius cannot be more than that.`);
+      return;
+    }
     setSaving(true);
     setMessage("");
     try {
@@ -318,7 +329,7 @@ export default function UserProfile() {
               theme={theme}
               label="Notification radius (km)"
               hint={
-                "How far to look for new harvests worth telling you about. You are only notified when a farm within this distance of your saved address lists or restocks produce." +
+                `How far to look for new harvests worth telling you about. You are only notified when a farm within this distance of your saved address lists or restocks produce. ${data?.nearbyRadiusMaxKm ?? 25} km is the furthest these notifications reach.` +
                 (data?.user.role === "consumer"
                   ? ""
                   : " This is separate from how far your own farm delivers.")
