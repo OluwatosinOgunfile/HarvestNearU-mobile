@@ -45,6 +45,7 @@ type ProfileData = {
   };
   storeCredit: { balance_kobo: number };
   emailPreferences: EmailPreferences;
+  preferences?: { preferred_radius_km: number; marketing_consent: boolean };
   farms?: {
     id: string;
     name: string;
@@ -65,6 +66,7 @@ export default function UserProfile() {
     lastName: "",
     email: "",
     phone: "",
+    preferredRadius: "",
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -81,6 +83,7 @@ export default function UserProfile() {
         lastName: result.user.last_name,
         email: result.user.email,
         phone: result.user.phone || "",
+        preferredRadius: String(result.preferences?.preferred_radius_km ?? 20),
       });
     } catch (reason) {
       setMessage((reason as Error).message);
@@ -311,6 +314,16 @@ export default function UserProfile() {
               value={form.phone}
               onChangeText={change("phone")}
             />
+            {data?.user.role === "consumer" ? (
+              <Field
+                theme={theme}
+                label="Notification radius (km)"
+                hint="How far to look for new harvests worth telling you about. You are only notified when a farm within this distance of your saved address lists or restocks produce."
+                value={form.preferredRadius}
+                keyboardType="numeric"
+                onChangeText={change("preferredRadius")}
+              />
+            ) : null}
             <Tap
               disabled={saving}
               onPress={() => void save()}
@@ -447,11 +460,15 @@ function Field({
   theme,
   label,
   value,
+  hint,
+  keyboardType,
   onChangeText,
 }: {
   theme: any;
   label: string;
   value: string;
+  hint?: string;
+  keyboardType?: "numeric";
   onChangeText: (value: string) => void;
 }) {
   return (
@@ -459,6 +476,7 @@ function Field({
       <Text style={[styles.label, { color: theme.muted }]}>{label}</Text>
       <TextInput
         value={value}
+        keyboardType={keyboardType}
         onChangeText={onChangeText}
         style={[
           styles.input,
@@ -469,6 +487,7 @@ function Field({
           },
         ]}
       />
+      {hint ? <Text style={[styles.hint, { color: theme.muted }]}>{hint}</Text> : null}
     </View>
   );
 }
@@ -582,6 +601,7 @@ const styles = StyleSheet.create({
   sectionTitle: { fontFamily: "Georgia_Regular", fontSize: 21 },
   row: { flexDirection: "row", gap: 9 },
   label: { fontSize: 11, fontWeight: "800", marginBottom: 6 },
+  hint: { fontSize: 11, lineHeight: 16, marginTop: 6 },
   input: {
     height: 48,
     borderWidth: 1,

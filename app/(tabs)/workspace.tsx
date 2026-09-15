@@ -16,6 +16,7 @@ import {
   Plus,
   Star,
   Store,
+  Truck,
   X,
 } from "lucide-react-native";
 import { useCallback, useState } from "react";
@@ -23,6 +24,7 @@ import {
   ActivityIndicator,
   Modal,
   StyleSheet,
+  Switch,
   TextInput,
   View,
 } from "react-native";
@@ -41,6 +43,8 @@ type Farm = {
   verification_status: string;
   average_rating: number;
   review_count: number;
+  delivery_radius_km: number;
+  offers_delivery: boolean;
 };
 type Item = {
   id: string;
@@ -114,6 +118,9 @@ export default function Workspace() {
   const [closedOrdersOpen, setClosedOrdersOpen] = useState(true);
   const [inventoryOpen, setInventoryOpen] = useState(true);
   const [reviewsOpen, setReviewsOpen] = useState(true);
+  const [radius, setRadius] = useState("");
+  const [offersDelivery, setOffersDelivery] = useState(false);
+  const [deliverySaved, setDeliverySaved] = useState("");
   const staff = user?.role === "admin" || user?.role === "support";
   const openConsole = useCallback(async () => {
     setBusy("console");
@@ -144,6 +151,8 @@ export default function Workspace() {
         );
         setData(result);
         setFarmId(String(result.farm.id));
+        setRadius(String(Number(result.farm.delivery_radius_km ?? 0)));
+        setOffersDelivery(Boolean(result.farm.offers_delivery));
       } catch (reason) {
         setError((reason as Error).message);
       } finally {
@@ -198,6 +207,31 @@ export default function Workspace() {
     setEditStatus(listing.status === "paused" ? "paused" : "active");
     setError("");
   }
+  async function saveDelivery() {
+    setBusy("delivery");
+    setError("");
+    setDeliverySaved("");
+    try {
+      // The dashboard's own delivery branch, not the profile route: that one rebuilds every farm
+      // column from the body, so sending just these two would blank the name, address and phone.
+      await api("/api/farmer/dashboard", {
+        method: "PATCH",
+        body: JSON.stringify({
+          type: "delivery",
+          farmId,
+          deliveryRadius: radius,
+          offersDelivery,
+        }),
+      });
+      setDeliverySaved("Delivery settings saved.");
+      await load(farmId);
+    } catch (reason) {
+      setError((reason as Error).message);
+    } finally {
+      setBusy("");
+    }
+  }
+
   async function saveInventory() {
     if (!editListing) return;
     const availableStock = Number(editStock);
@@ -426,6 +460,79 @@ export default function Workspace() {
                 Manage farm profile and locations
               </Text>
             </Tap>
+            <View
+              style={[
+                styles.delivery,
+                { backgroundColor: theme.surface, borderColor: theme.border },
+              ]}
+            >
+              <View style={styles.deliveryHead}>
+                <Truck size={19} color={theme.primary} />
+                <Text style={[styles.deliveryTitle, { color: theme.text }]}>
+                  Doorstep delivery
+                </Text>
+                <Switch
+                  value={offersDelivery}
+                  onValueChange={(next) => {
+                    setOffersDelivery(next);
+                    setDeliverySaved("");
+                  }}
+                  trackColor={{ false: theme.border, true: theme.primary }}
+                />
+              </View>
+              <Text style={[styles.deliveryCopy, { color: theme.muted }]}>
+                Customers pay ₦250 per kilometre to reach you, so your radius also
+                sets the most a delivery from this farm can cost them. Anyone
+                further away is offered farm pickup instead.
+              </Text>
+              <Text style={[styles.deliveryLabel, { color: theme.muted }]}>
+                DELIVERY RADIUS (KM)
+              </Text>
+              <View style={styles.deliveryRow}>
+                <TextInput
+                  value={radius}
+                  keyboardType="numeric"
+                  onChangeText={(next) => {
+                    setRadius(next);
+                    setDeliverySaved("");
+                  }}
+                  style={[
+                    styles.deliveryInput,
+                    {
+                      color: theme.text,
+                      backgroundColor: theme.background,
+                      borderColor: theme.border,
+                    },
+                  ]}
+                />
+                <Tap
+                  disabled={busy === "delivery"}
+                  onPress={() => void saveDelivery()}
+                  style={[
+                    styles.deliverySave,
+                    { backgroundColor: theme.primary, opacity: busy === "delivery" ? 0.6 : 1 },
+                  ]}
+                >
+                  {busy === "delivery" ? (
+                    <ActivityIndicator color={theme.primaryText} />
+                  ) : (
+                    <Text style={{ color: theme.primaryText, fontWeight: "800" }}>
+                      Save
+                    </Text>
+                  )}
+                </Tap>
+              </View>
+              <Text style={[styles.deliveryCopy, { color: theme.muted }]}>
+                {offersDelivery && Number(radius) > 0
+                  ? `Delivering up to ${Number(radius)} km · longest delivery ₦${(Math.max(1, Number(radius) || 1) * 250).toLocaleString("en-NG")}`
+                  : "Pickup only. Turn doorstep delivery on and set a radius above 0 km to deliver."}
+              </Text>
+              {deliverySaved ? (
+                <Text style={[styles.deliverySaved, { color: theme.primary }]}>
+                  {deliverySaved}
+                </Text>
+              ) : null}
+            </View>
             <Section
               theme={theme}
               title="Orders to fulfil"
@@ -1165,6 +1272,15 @@ const styles = StyleSheet.create({
   },
   chatUnread: { minWidth: 19, height: 19, marginLeft: 6, paddingHorizontal: 5, borderRadius: 10, backgroundColor: "#b64337", color: "#fff", fontSize: 10, fontWeight: "900", lineHeight: 19, textAlign: "center", overflow: "hidden" },
   farmActions: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginTop: 10 },
+  delivery: { marginTop: 10, padding: 14, borderWidth: 1, borderRadius: 14 },
+  deliveryHead: { flexDirection: "row", alignItems: "center", gap: 10 },
+  deliveryTitle: { flex: 1, fontSize: 15, fontWeight: "900" },
+  deliveryCopy: { fontSize: 12, lineHeight: 17, marginTop: 8 },
+  deliveryLabel: { fontSize: 10, fontWeight: "900", letterSpacing: 1, marginTop: 12 },
+  deliveryRow: { flexDirection: "row", alignItems: "center", gap: 10, marginTop: 6 },
+  deliveryInput: { flex: 1, height: 46, paddingHorizontal: 12, borderWidth: 1, borderRadius: 11, fontSize: 14 },
+  deliverySave: { minWidth: 84, height: 46, paddingHorizontal: 16, borderRadius: 11, alignItems: "center", justifyContent: "center" },
+  deliverySaved: { fontSize: 12, fontWeight: "800", marginTop: 8 },
   farmAction: {
     width: "48%",
     height: 50,
