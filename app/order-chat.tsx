@@ -1,7 +1,7 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ChevronLeft, Send } from "lucide-react-native";
-import { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, StyleSheet, View } from "react-native";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { ActivityIndicator, AppState, ScrollView, StyleSheet, View } from "react-native";
 
 import { Tap } from "@/components/tap";
 import { Screen } from "@/components/screen";
@@ -21,12 +21,15 @@ export default function OrderChat() {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
-  const load = useCallback(async () => {
+  const pageRef = useRef<ScrollView>(null);
+  // A background refresh stays quiet: a dropped poll on a patchy connection should not put an error
+  // under a conversation that is working, and the next poll will pick it up.
+  const load = useCallback(async (silent = false) => {
     try {
-      setError("");
+      if (!silent) setError("");
       setData(await api<Response>(`/api/orders/messages?orderId=${encodeURIComponent(orderId)}&farmId=${encodeURIComponent(farmId)}`));
-    } catch (reason) { setError((reason as Error).message); }
-    finally { setLoading(false); }
+    } catch (reason) { if (!silent) setError((reason as Error).message); }
+    finally { if (!silent) setLoading(false); }
   }, [farmId, orderId]);
   useEffect(() => {
     let active = true;
@@ -34,8 +37,20 @@ export default function OrderChat() {
       .then((result) => { if (active) setData(result); })
       .catch((reason: Error) => { if (active) setError(reason.message); })
       .finally(() => { if (active) setLoading(false); });
-    return () => { active = false; };
-  }, [farmId, orderId]);
+    // A reply used to appear only if the farmer's customer pulled to refresh. Ten seconds is plenty
+    // for two people agreeing a handover, and it stops while the app is in the background so a
+    // screen left open does not poll all day.
+    const poll = setInterval(() => { if (AppState.currentState === "active") void load(true); }, 10000);
+    return () => { active = false; clearInterval(poll); };
+  }, [farmId, orderId, load]);
+
+  // Keep the newest message in view, on opening and whenever one arrives or is sent.
+  useEffect(() => {
+    if (!data?.messages.length) return;
+    const timer = setTimeout(() => pageRef.current?.scrollToEnd({ animated: true }), 120);
+    return () => clearTimeout(timer);
+  }, [data?.messages.length]);
+
   async function send() {
     const message = draft.trim();
     if (!message) return;
@@ -46,7 +61,7 @@ export default function OrderChat() {
     } catch (reason) { setError((reason as Error).message); }
     finally { setSending(false); }
   }
-  return <Screen refreshing={loading} onRefresh={load}>
+  return <Screen scrollRef={pageRef} refreshing={loading} onRefresh={() => void load()}>
     <View style={[styles.header, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}>
       <Tap accessibilityLabel="Back" onPress={() => router.back()} style={styles.back}><ChevronLeft size={21} color={theme.text}/></Tap>
       <View style={{ flex: 1 }}><Text style={[styles.eyebrow, { color: theme.primary }]}>ARRANGE DELIVERY</Text><Text numberOfLines={1} style={[styles.title, { color: theme.text }]}>{data?.thread.farm_name || "Farmer conversation"}</Text></View>
