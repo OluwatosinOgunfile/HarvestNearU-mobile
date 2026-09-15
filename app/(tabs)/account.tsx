@@ -432,19 +432,21 @@ export default function Account() {
                 { backgroundColor: theme.surface, borderColor: theme.border },
               ]}
             >
-              <View
-                style={[styles.menuIcon, { backgroundColor: theme.surfaceAlt }]}
-              >
-                <Moon size={21} color={theme.primary} />
+              <View style={styles.menuHead}>
+                <View
+                  style={[styles.menuIcon, { backgroundColor: theme.surfaceAlt }]}
+                >
+                  <Moon size={21} color={theme.primary} />
+                </View>
+                <Switch
+                  value={dark}
+                  onValueChange={setDark}
+                  trackColor={{ false: theme.border, true: theme.primary }}
+                />
               </View>
-              <Text style={[styles.menuText, { color: theme.text }]}>
+              <Text numberOfLines={1} style={[styles.menuText, { color: theme.text }]}>
                 Dark appearance
               </Text>
-              <Switch
-                value={dark}
-                onValueChange={setDark}
-                trackColor={{ false: theme.border, true: theme.primary }}
-              />
             </View>
           </View>
           <Tap
@@ -1189,10 +1191,14 @@ function Menu({
         },
       ]}
     >
-      <View style={[styles.menuIcon, { backgroundColor: theme.surfaceAlt }]}>
-        {icon}
+      <View style={styles.menuHead}>
+        <View style={[styles.menuIcon, { backgroundColor: theme.surfaceAlt }]}>
+          {icon}
+        </View>
       </View>
-      <Text style={[styles.menuText, { color: theme.text }]}>{title}</Text>
+      <Text numberOfLines={1} style={[styles.menuText, { color: theme.text }]}>
+        {title}
+      </Text>
     </Tap>
   );
 }
@@ -1239,17 +1245,22 @@ const styles = StyleSheet.create({
   name: { fontFamily: "Georgia_Regular", fontSize: 25 },
   accountRole: { fontSize: 12, fontWeight: "800", marginTop: 3 },
   grid: { marginTop: 15, flexDirection: "row", flexWrap: "wrap", gap: 10 },
-  // Trimmed from 124 to the height the tallest tile actually needs. The appearance tile carries a
-  // switch as well as an icon and a label, so 108 is 12 padding twice, a 36 icon, a 17 line of text
-  // and roughly 31 of switch. Every tile keeps that height so a row cannot end up uneven, and the
-  // label stays at 13 because shrinking the text is what would cost readability, not the box.
+  // 124 first, then 108, now 84. The switch used to sit on a row of its own beneath the label, which
+  // is what set the height; opposite the icon it costs nothing, because the row is already 36 tall
+  // for the icon and a switch is shorter than that. So every tile is 12 of padding twice, a 36 icon
+  // row, 6, and a 17 line of label. The label stays at 13 and fits on one line in every tile: the
+  // widest, "Returns & refunds", measures 111dp of the 147dp inside the padding.
   menu: {
     width: "48%",
     flexGrow: 1,
-    minHeight: 108,
+    minHeight: 84,
     padding: 12,
     borderWidth: 1,
     borderRadius: 14,
+  },
+  menuHead: {
+    flexDirection: "row",
+    alignItems: "center",
     justifyContent: "space-between",
   },
   menuIcon: {
@@ -1259,7 +1270,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  menuText: { fontSize: 13, fontWeight: "800", lineHeight: 17 },
+  menuText: { fontSize: 13, fontWeight: "800", lineHeight: 17, marginTop: 6 },
   signOut: {
     height: 48,
     marginTop: 18,
