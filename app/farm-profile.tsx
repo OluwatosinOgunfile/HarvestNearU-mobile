@@ -218,6 +218,7 @@ export default function FarmProfile() {
             <Field
               theme={theme}
               label="Delivery radius (km)"
+              hint="How far you are willing to deliver. Customers pay ₦250 per kilometre, so this also sets the most a delivery from your farm can cost them. Use 0 to stop offering doorstep delivery."
               value={form.deliveryRadius}
               keyboardType="numeric"
               onChangeText={set("deliveryRadius")}
@@ -277,11 +278,13 @@ export default function FarmProfile() {
 function Field({
   theme,
   label,
+  hint,
   style,
   ...props
 }: {
   theme: any;
   label: string;
+  hint?: string;
   style?: object;
   [key: string]: any;
 }) {
@@ -301,6 +304,7 @@ function Field({
           },
         ]}
       />
+      {hint ? <Text style={[styles.hint, { color: theme.muted }]}>{hint}</Text> : null}
     </View>
   );
 }
@@ -364,6 +368,7 @@ const styles = StyleSheet.create({
   card: { padding: 15, borderWidth: 1, borderRadius: 15 },
   row: { flexDirection: "row", gap: 9 },
   label: { fontSize: 11, fontWeight: "800", marginBottom: 6 },
+  hint: { fontSize: 11, lineHeight: 16, marginTop: 6 },
   input: {
     height: 48,
     borderWidth: 1,
